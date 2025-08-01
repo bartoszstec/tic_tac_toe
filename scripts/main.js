@@ -30,87 +30,133 @@
         //check row
         for (let row = 0; row < 3; row++ ){
             if (b[row][0] && b[row][0] === b[row][1] && b[row][1] === b[row][2]) {
-                //console.log("koniec gry wygrał:", this.currentPlayer);
-                return true;
+                return [[row, 0], [row, 1], [row, 2]];
             }
         }
 
         //check col
         for (let col = 0; col < 3; col++ ){
             if (b[0][col] && b[0][col] === b[1][col] && b[1][col] === b[2][col]) {
-                //console.log("koniec gry wygrał:", this.currentPlayer);
-                return true;
+                return [[0, col], [1, col], [2, col]];
             }
         }
 
         //check diagonal from [0][0]
             if (b[0][0] && b[0][0] === b[1][1] && b[1][1] === b[2][2]) {
-                //console.log("koniec gry wygrał:", this.currentPlayer);
-                return true;
+                return [[0, 0], [1, 1], [2, 2]];
             }
 
         //check diagonal from [0][3]
             if (b[0][2] && b[0][2] === b[1][1] && b[1][1] === b[2][0]) {
-                //console.log("koniec gry wygrał:", this.currentPlayer);
-                return true;
+                return [[0, 2], [1, 1], [2, 0]];
             }
+
+        return null;
         }
 
         checkIfDraw() {
         return this.board.flat().every(cell => cell !== null);
         }
 
-        drawBoard(ctx) {
-        ctx.strokeStyle = "black";
-        ctx.lineWidth = 5;
-
-        // Pionowe linie
-        ctx.beginPath();
-        ctx.moveTo(this.cellSize, 0);
-        ctx.lineTo(this.cellSize, this.height);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(this.cellSize * 2, 0);
-        ctx.lineTo(this.cellSize * 2, this.height);
-        ctx.stroke();
-
-        // Poziome linie
-        ctx.beginPath();
-        ctx.moveTo(0, this.cellSize);
-        ctx.lineTo(this.width, this.cellSize);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(0, this.cellSize * 2);
-        ctx.lineTo(this.width, this.cellSize * 2);
-        ctx.stroke();
-        }
-
-        resetGame(){
-        this.board = [
-        [null, null, null],
-        [null, null, null],
-        [null, null, null]
-        ];
-
-        this.currentPlayer = "X";
-        ctx.clearRect(0, 0, this.width, this.height);
-        this.drawBoard(ctx);
-        this.gameOver = false;
-        }
-
         results(winner){
             this.gameOver = true;
             if (winner){
-                console.log("koniec gry wygrał:", game.currentPlayer);
-            } else {console.log("remis");}
+                alert(`Koniec gry wygrał: ${game.currentPlayer}`);
+            } else {alert("Remis!")}
 
-            console.log("tutaj jest czas na animację");
-            setTimeout(() => {
             game.resetGame(); 
-            }, 1000);
         }
+
+        resetGame(){
+            this.board = [
+            [null, null, null],
+            [null, null, null],
+            [null, null, null]
+            ];
+
+            this.currentPlayer = "X";
+            ctx.clearRect(0, 0, this.width, this.height);
+            this.drawBoard(ctx);
+            this.gameOver = false;
+        }
+
+        drawBoard(ctx) {
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 5;
+
+            // Pionowe linie
+            ctx.beginPath();
+            ctx.moveTo(this.cellSize, 0);
+            ctx.lineTo(this.cellSize, this.height);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(this.cellSize * 2, 0);
+            ctx.lineTo(this.cellSize * 2, this.height);
+            ctx.stroke();
+
+            // Poziome linie
+            ctx.beginPath();
+            ctx.moveTo(0, this.cellSize);
+            ctx.lineTo(this.width, this.cellSize);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(0, this.cellSize * 2);
+            ctx.lineTo(this.width, this.cellSize * 2);
+            ctx.stroke();
+        }
+
+    animateWinningLine(ctx, winningCells, callback) {
+        const [startRow, startCol] = winningCells[0];
+        const [endRow, endCol] = winningCells[2];
+
+        const startX = startCol * this.cellSize + this.cellSize / 2;
+        const startY = startRow * this.cellSize + this.cellSize / 2;
+        const endX = endCol * this.cellSize + this.cellSize / 2;
+        const endY = endRow * this.cellSize + this.cellSize / 2;
+
+        let progress = 0;
+        const steps = 30;
+        const delay = 15; // ms między krokami
+
+        const drawStep = () => {
+            ctx.clearRect(0, 0, this.width, this.height);
+            this.drawBoard(ctx);
+
+            // Rysuj ponownie wszystkie symbole
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 3; col++) {
+                    if (this.board[row][col]) {
+                        this.drawSymbol(ctx, row, col, this.board[row][col]);
+                    }
+                }
+            }
+
+            // Styl linii
+            ctx.strokeStyle = "rgba(255, 0, 0, 0.8)";
+            ctx.lineWidth = 8;
+            ctx.lineCap = "round";
+
+            ctx.beginPath();
+            ctx.moveTo(startX, startY);
+
+            const currentX = startX + (endX - startX) * (progress / steps);
+            const currentY = startY + (endY - startY) * (progress / steps);
+
+            ctx.lineTo(currentX, currentY);
+            ctx.stroke();
+
+            if (progress < steps) {
+                progress++;
+                requestAnimationFrame(drawStep);
+            } else if (callback) {
+                setTimeout(callback, 800); // chwila pauzy po zakończeniu animacji
+            }
+        };
+
+    drawStep();
+}
 
         drawSymbol(ctx, row, col, symbol) {
         const x = col * this.cellSize;
@@ -159,12 +205,20 @@
             if (game.board[row][col] === null) {
                 game.board[row][col] = game.currentPlayer;
                 game.drawSymbol(ctx, row, col, game.currentPlayer);
-                if (game.checkIfWin()){
-                    game.results(true);
-                } else {game.switchPlayer();}
+                const winningCells = game.checkIfWin();
+                if (winningCells){
+                    game.gameOver = true; // ustawienie zmiennej gameOver na false powoduje zatrzymanie nasłuchiwacza kliknięć i musi być wykonana ZARAZ PO zakończeniu rozgrywki
+                    game.animateWinningLine(ctx, winningCells, () => {
+                        game.results(true);
+                    });
+                } else if (game.checkIfDraw()){
+                    setTimeout(() => {
+                        game.results(false);
+                    }, 500);
+                  } else {game.switchPlayer();}
             }
 
-            if (game.checkIfDraw()){game.results(false);}
+            
         }
     });
 
