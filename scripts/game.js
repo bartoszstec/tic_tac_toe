@@ -5,6 +5,7 @@ export class Game {
             this.ctx = ctx;
             this.cellSize = this.width/3;
             this.gameOver = false;
+            this.gameStarted = false;
             this.board = [
             [null, null, null], //tablica gry
             [null, null, null],
@@ -19,7 +20,26 @@ export class Game {
         console.log("switched player to:", this.currentPlayer); // print o zmianie gracza
         }
 
-        checkIfWin() {
+        makeAIMove() {
+            // Znajdź wszystkie puste pola
+            const emptyCells = [];
+            for (let row = 0; row < 3; row++) {
+                for (let col = 0; col < 3; col++) {
+                if (this.board[row][col] === null) {
+                    emptyCells.push({ row, col });
+                }
+                }
+            }
+
+            // Wybierz losowe puste pole
+            const move = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+
+            // Wykonaj ruch
+            this.board[move.row][move.col] = this.currentPlayer;
+            this.drawSymbol(move.row, move.col, this.currentPlayer);
+        }
+
+        getWinningLine() {
         const b = this.board;
 
         //check row
@@ -49,7 +69,7 @@ export class Game {
         return null;
         }
 
-        checkIfDraw() {
+        checkFullBoard() {
         return this.board.flat().every(cell => cell !== null);
         }
 
@@ -62,6 +82,23 @@ export class Game {
             this.resetGame(); 
         }
 
+        tryEndGame() {
+            const winningCells = this.getWinningLine();
+            if (winningCells) {
+                this.gameOver = true;
+                this.animateWinningLine(winningCells, () => {
+                    this.results(true);
+                });
+                return true; // zakończono grę wygraną
+            } else if (this.checkFullBoard()) {
+                setTimeout(() => {
+                    this.results(false);
+                }, 500);
+                return true; // zakończono grę remisem
+            }
+            return false; // gra toczy się dalej
+        }
+
         resetGame(){
             this.board = [
             [null, null, null],
@@ -72,6 +109,7 @@ export class Game {
             this.currentPlayer = "X";
             this.ctx.clearRect(0, 0, this.width, this.height);
             this.drawBoard(this.ctx);
+            this.gameStarted = false;
             this.gameOver = false;
         }
 
