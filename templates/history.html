@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe</title>
+</head>
+<body>
+<h1>Historia Gier:</h1>
+{% if games %}
+        <ul>
+        {% for game in games %}
+            <li>
+                <h2>Gra nr {{loop.index}}</h2>
+                <h3>Wygrał gracz: {{ game.result }}</h3>
+                <ol>
+                {% for move in game.moves %}
+                    <li>
+                        Gracz: {{ move.player }} -
+                        Pozycja: ({{ move.position[0] }}, {{ move.position[1] }})
+                        <br />
+                        Plansza po ruchu:
+                        <pre>{{ move.board | tojson(indent=2) }}</pre>
+                    </li>
+                {% endfor %}
+                </ol>
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>Brak zapisanych gier.</p>
+    {% endif %}
+    
+</body>
+</html>

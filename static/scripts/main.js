@@ -2,8 +2,9 @@ import { Game } from './game.js';
 
 const canvas = document.getElementById("canvas1");
 const ctx = canvas.getContext("2d");
-canvas.width = 600;
-canvas.height = 600;
+const gameSize = 600;
+canvas.width = gameSize;
+canvas.height =  gameSize;
 
     
 // Inicjalizacja Gry
@@ -30,8 +31,9 @@ function handleCanvasClick(event) {
     console.log("Kliknięto:", { row, col, player: game.currentPlayer });
     game.gameStarted = true;
 
-    game.board[row][col] = game.currentPlayer;
+    game.board[row][col] = game.currentPlayer; // Ruch gracza zapisany do tablicy
     game.drawSymbol(row, col, game.currentPlayer);
+    game.saveMoveToLog(row, col);
 
     if (game.tryEndGame()) return;
 

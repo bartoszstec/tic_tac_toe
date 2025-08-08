@@ -11,6 +11,7 @@ export class Game {
             [null, null, null],
             [null, null, null]
             ];
+            this.moveLog = [];
             this.currentPlayer = "X"; // Zaczyna X
             this.mode = "PvP"; // Tryb gry: PvP lub PvE
         };
@@ -37,6 +38,7 @@ export class Game {
             // Wykonaj ruch
             this.board[move.row][move.col] = this.currentPlayer;
             this.drawSymbol(move.row, move.col, this.currentPlayer);
+            this.saveMoveToLog(move.row, move.col);
         }
 
         getWinningLine() {
@@ -76,9 +78,14 @@ export class Game {
         results(winner){
             this.gameOver = true;
             if (winner){
-                alert(`Koniec gry wygrał: ${this.currentPlayer}`);
-            } else {alert("Remis!")}
-
+                this.saveGameResult(winner);
+                alert(`Koniec gry wygrał: ${winner}`);
+            } else {
+                this.saveGameResult(null);
+                alert("Remis!")
+            }
+            console.log("Historia ruchów1:", {moveLog: this.moveLog });
+            console.log("Historia ruchów2:\n" + JSON.stringify(this.moveLog, null, 2));
             this.resetGame(); 
         }
 
@@ -87,12 +94,12 @@ export class Game {
             if (winningCells) {
                 this.gameOver = true;
                 this.animateWinningLine(winningCells, () => {
-                    this.results(true);
+                    this.results(this.currentPlayer);
                 });
                 return true; // zakończono grę wygraną
             } else if (this.checkFullBoard()) {
                 setTimeout(() => {
-                    this.results(false);
+                    this.results();
                 }, 500);
                 return true; // zakończono grę remisem
             }
@@ -111,6 +118,31 @@ export class Game {
             this.drawBoard(this.ctx);
             this.gameStarted = false;
             this.gameOver = false;
+        }
+
+        saveMoveToLog(row, col) {
+            const boardCopy = this.board.map(row => [...row]); // utworzenie płytkiej kopii tablicy board
+            //const boardCopy = JSON.parse(JSON.stringify(this.board)); //utworzenie głębokiej kopii tablicy board  
+
+            this.moveLog.push({
+                player: this.currentPlayer,
+                position: [row, col],
+                board: boardCopy
+            });
+            console.log("move saved");
+        }
+
+        saveGameResult(winner) {
+            fetch("/save-game", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    moves: this.moveLog,
+                    result: winner || "DRAW"
+                })
+            }).then(res => res.json())
+            .then(data => console.log("Zapisano grę:", data.status))
+            .catch(err => console.error("Błąd zapisu gry:", err));
         }
 
         drawBoard() {
