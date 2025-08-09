@@ -36,18 +36,12 @@ function handleCanvasClick(event) {
     game.saveMoveToLog(row, col);
 
     if (game.tryEndGame()) return;
+    game.switchPlayer();
 
-    if (game.mode === "PvP") {
-        game.switchPlayer();
-    } else if (game.mode === "PvE") {
-        game.switchPlayer();
+    if (game.mode === "PvE") {
         game.makeAIMove();
-
         if (game.tryEndGame()) return;
-
-        game.switchPlayer();
-    } else {
-        console.warn("Nieznany tryb gry:", game.mode);
+        //game.switchPlayer();
     }
 }
 

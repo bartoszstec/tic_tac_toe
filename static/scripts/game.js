@@ -22,23 +22,26 @@ export class Game {
         }
 
         makeAIMove() {
-            // Znajdź wszystkie puste pola
-            const emptyCells = [];
-            for (let row = 0; row < 3; row++) {
-                for (let col = 0; col < 3; col++) {
-                if (this.board[row][col] === null) {
-                    emptyCells.push({ row, col });
-                }
-                }
-            }
+            fetch("/AI-move", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ board: this.board })
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log("Ruch AI:", data.move);
+            const [row, col] = data.move;
+                // Wykonaj ruch
+            this.board[row][col] = this.currentPlayer;
+            this.drawSymbol(row, col, this.currentPlayer);
+            this.saveMoveToLog(row, col);
 
-            // Wybierz losowe puste pole
-            const move = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+            if (!this.tryEndGame()) {
+            this.switchPlayer(); // ← dopiero po wykonaniu ruchu AI
+        }
 
-            // Wykonaj ruch
-            this.board[move.row][move.col] = this.currentPlayer;
-            this.drawSymbol(move.row, move.col, this.currentPlayer);
-            this.saveMoveToLog(move.row, move.col);
+            })
+            .catch(err => console.error("Błąd:", err));
         }
 
         getWinningLine() {
@@ -84,8 +87,6 @@ export class Game {
                 this.saveGameResult(null);
                 alert("Remis!")
             }
-            console.log("Historia ruchów1:", {moveLog: this.moveLog });
-            console.log("Historia ruchów2:\n" + JSON.stringify(this.moveLog, null, 2));
             this.resetGame(); 
         }
 
@@ -129,7 +130,6 @@ export class Game {
                 position: [row, col],
                 board: boardCopy
             });
-            console.log("move saved");
         }
 
         saveGameResult(winner) {
