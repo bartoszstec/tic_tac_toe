@@ -6,42 +6,43 @@ const gameSize = 600;
 canvas.width = gameSize;
 canvas.height =  gameSize;
 
-    
+
+let gameActive = true; //flaga do kontrolowania funkcji
+let gameStarted = false;
+
 // Inicjalizacja Gry
 const game = new Game(canvas.width, canvas.height, ctx); //utworzenie obiektu gry
 game.drawBoard();
 
+fetch("/start-game") //poinformowanie backendu o starcie gry
+  .then(res => res.json())
+  .then(data => {
+    console.log("Gra rozpoczęta:", data);
+  })
+  .catch(err => console.error("Błąd przy starcie gry:", err));
+
 
 // Obsługa kliknięcia na canvas
-canvas.addEventListener("click", handleCanvasClick);
+    canvas.addEventListener("click", handleCanvasClick);
 
-// Obsługa zmiany trybu
-const modeToggleBtn = document.getElementById("modeToggle");
-modeToggleBtn.addEventListener("click", toggleGameMode);
-
+    // Obsługa zmiany trybu
+    const modeToggleBtn = document.getElementById("modeToggle");
+    modeToggleBtn.addEventListener("click", toggleGameMode);
 
 //Funkcje pomocnicze
 function handleCanvasClick(event) {
-    if (game.gameOver) return;
-
+    gameStarted = true;
     const { row, col } = getClickedCell(event);
+    console.log("Kliknięto:", { row, col});
 
-    if (game.board[row][col] !== null) return;
-
-    console.log("Kliknięto:", { row, col, player: game.currentPlayer });
-    game.gameStarted = true;
-
-    game.board[row][col] = game.currentPlayer; // Ruch gracza zapisany do tablicy
-    game.drawSymbol(row, col, game.currentPlayer);
-    game.saveMoveToLog(row, col);
-
-    if (game.tryEndGame()) return;
-    game.switchPlayer();
-
-    if (game.mode === "PvE") {
-        game.makeAIMove();
-        if (game.tryEndGame()) return;
-        //game.switchPlayer();
+    switch(game.mode){
+      case "PvP":
+        makePlayerMove(row, col);
+        break;
+      case "PvE":
+        //implementacja ruchu AI
+        break;
+    default:
     }
 }
 
@@ -57,10 +58,56 @@ function getClickedCell(event) {
 }
 
 function toggleGameMode() {
-    if (!game.gameStarted) {
+    if (!gameStarted) { //w warunku będzie wartość gameOver z sesji
         game.mode = game.mode === "PvP" ? "PvE" : "PvP";
         modeToggleBtn.textContent = `Zmień tryb (obecnie: ${game.mode})`;
     } else {
         console.warn("Nie można zmienić trybu gry podczas trwania rozgrywki!");
     }
+}
+
+function makePlayerMove(row, col) {
+    if (!gameActive) return;
+
+    fetch("/player-move", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ row: row, col: col })
+    })
+    .then(res => {
+    return res.json().then(data => {
+            if (!res.ok) {
+                // Obsługa błędu z backendu
+                console.warn("Błąd ruchu gracza:", data.error);
+                alert(data.error || "Wystąpił błąd przy ruchu");
+                throw new Error(data.error); // zatrzymuje dalsze then()
+            }
+            return data;
+        });
+    })
+    .then(data => {
+        // Wykonaj ruch
+    game.drawSymbol(row, col, data.current_player);
+    console.log("ruch wykonał gracz:", data.current_player);
+
+    if (data.winner) {
+    gameActive = false;
+    game.animateWinningLine(data.winning_line);
+        setTimeout(() => {
+                alert(`Wygrał gracz: ${data.current_player}`)
+                game.clearBoard();
+                gameActive = true;
+                gameStarted = false;
+            }, 1000); // 1000 ms = 1 sekunda
+    } else if (data.draw){
+    gameActive = false;
+        setTimeout(() => {
+                alert("Remis!")
+                game.clearBoard();
+                gameActive = true;
+                gameStarted = false;
+        }, 1000);
+    }
+    })
+    .catch(err => console.error("Błąd:", err));
 }

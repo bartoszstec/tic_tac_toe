@@ -10,9 +10,9 @@
     <button id="powrót">Powrót</button>
 </a>
 <h1>Historia Gier:</h1>
-{% if games %}
+{% if games_history %}
         <ul>
-        {% for game in games %}
+        {% for game in games_history %}
             <li>
                 <h2>Gra nr {{loop.index}}</h2>
                 <h3>Wygrał gracz: {{ game.result }}</h3>
