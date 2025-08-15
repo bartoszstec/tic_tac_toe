@@ -64,17 +64,36 @@ def history():
 
 @app.route('/AI-move', methods = ['POST'])
 def ai_move():
-    data = request.get_json()
-    if not data or "board" not in data:
-        return jsonify({"status": "error", "message": "No data received"}), 400
+    session_id = session.get('session_id')
+    if not session_id:
+        print("Brak session_id!")
+        return jsonify({"error": "Brak sesji"}), 400
 
-    board = data["board"]  # to jest lista list z JS
+    game = games[session_id]
+    board = game.board
+
     move = choose_move(board)
 
-    if move is None:
-        return jsonify({"status": "error", "message": "No moves available"}), 400
+    row, col = move
 
-    return jsonify({"move": list(move)})  # np. [1, 0]
+    try:
+        game.make_move(row, col)
+    except ValueError as e:
+        # Zwróć komunikat o błędzie do frontendu
+        return jsonify({"error": str(e)}), 400
+
+    winner = game.winner
+    winning_line = game.winning_line
+    draw = False
+    current_player = game.current_player
+    if game.check_full_board():
+        draw = True
+    if game.game_over:
+        game.reset_game()
+    else:
+        game.switch_player()  # koniecznie po zapisaniu playera
+
+    return jsonify({"status": "ruch ai wykonany", "current_player": current_player, "winner": winner, "winning_line": winning_line, "draw": draw, "aiRow": row, "aiCol": col})
 
 @app.route('/player-move', methods = ['POST'])
 def player_move():
@@ -90,18 +109,20 @@ def player_move():
     game = games[session_id]
 
     try:
-        game.player_move(row, col)
+        game.make_move(row, col)
     except ValueError as e:
         # Zwróć komunikat o błędzie do frontendu
         return jsonify({"error": str(e)}), 400
     winner = game.winner
     winning_line = game.winning_line
     draw = False
+
     current_player = game.current_player
-    game.switch_player() #koniecznie po zapisaniu playera
     if game.check_full_board():
         draw = True
     if game.game_over:
         game.reset_game()
+    else:
+        game.switch_player()  # koniecznie po zapisaniu playera
 
     return jsonify({"status": "ruch gracza wykonany", "current_player": current_player, "winner": winner, "winning_line": winning_line, "draw": draw})

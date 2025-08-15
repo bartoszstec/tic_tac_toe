@@ -40,7 +40,7 @@ function handleCanvasClick(event) {
         makePlayerMove(row, col);
         break;
       case "PvE":
-        //implementacja ruchu AI
+        performAiGame(row, col);
         break;
     default:
     }
@@ -67,47 +67,66 @@ function toggleGameMode() {
 }
 
 function makePlayerMove(row, col) {
-    if (!gameActive) return;
+    if (!gameActive) return Promise.resolve(null);
 
-    fetch("/player-move", {
+    //  Ruch Gracza
+    return fetch("/player-move", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ row: row, col: col })
     })
-    .then(res => {
-    return res.json().then(data => {
-            if (!res.ok) {
-                // Obsługa błędu z backendu
-                console.warn("Błąd ruchu gracza:", data.error);
-                alert(data.error || "Wystąpił błąd przy ruchu");
-                throw new Error(data.error); // zatrzymuje dalsze then()
-            }
-            return data;
-        });
-    })
+    .then(res => res.json())
     .then(data => {
-        // Wykonaj ruch
+        if (data.error) {
+            console.warn("Błąd ruchu gracza:", data.error);
+            alert(data.error || "Wystąpił błąd przy ruchu");
+            throw new Error(data.error);
+        }
+
+    // Wykonanie ruchu
     game.drawSymbol(row, col, data.current_player);
     console.log("ruch wykonał gracz:", data.current_player);
+    tryEndGame(data);
 
+    return data; // <- ważne, żeby PvE mogło sprawdzić winner/draw
+    })
+}
+
+function performAiGame(row, col) {
+    makePlayerMove(row, col)
+    .then(data => {
+        if (!data || !gameActive) return;
+
+        return fetch("/AI-move", { method: "POST" })
+            .then(res => res.json())
+            .then(aiData => {
+                console.log("ruch wykonał gracz:", aiData.current_player);
+                game.drawSymbol(aiData.aiRow, aiData.aiCol, aiData.current_player);
+                tryEndGame(aiData);
+            });
+    })
+    .catch(err => console.error("Błąd PvE:", err));
+}
+
+function tryEndGame(data) {
     if (data.winner) {
-    gameActive = false;
-    game.animateWinningLine(data.winning_line);
+        gameActive = false;
+        game.animateWinningLine(data.winning_line);
         setTimeout(() => {
-                alert(`Wygrał gracz: ${data.current_player}`)
-                game.clearBoard();
-                gameActive = true;
-                gameStarted = false;
-            }, 1000); // 1000 ms = 1 sekunda
-    } else if (data.draw){
-    gameActive = false;
+            alert(`Wygrał gracz: ${data.current_player}`);
+            resetGame();
+        }, 1000);
+    } else if (data.draw) {
+        gameActive = false;
         setTimeout(() => {
-                alert("Remis!")
-                game.clearBoard();
-                gameActive = true;
-                gameStarted = false;
+            alert("Remis!");
+            resetGame();
         }, 1000);
     }
-    })
-    .catch(err => console.error("Błąd:", err));
+}
+
+function resetGame() {
+    game.clearBoard();
+    gameActive = true;
+    gameStarted = false;
 }

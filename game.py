@@ -72,7 +72,7 @@ class Game:
         except requests.RequestException as err:
             print("Błąd zapisu gry:", err)
 
-    def player_move(self, row, col):
+    def make_move(self, row, col):
         b = self.board
         if b[row][col] is not None:
             raise ValueError("Pole jest już zajęte!")
