@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify, session
 from flask import render_template
 import json, os
-from model import choose_move
+from model import random_move
 from game import Game
 import uuid
 
@@ -72,7 +72,7 @@ def ai_move():
     game = games[session_id]
     board = game.board
 
-    move = choose_move(board)
+    move = random_move(board)
 
     row, col = move
 
