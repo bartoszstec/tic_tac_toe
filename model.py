@@ -60,7 +60,7 @@ def is_game_over(board):
             values.append(board[r][c])
         if values[0] is not None and values[0] == values[1] and values[1] == values[2]:
             return True, values[0]
-    if (is_board_full(board)):
+    if is_board_full(board):
         return True, 'draw'
     return False, None
 
@@ -88,27 +88,26 @@ discount_factor = 0.85
 # Określa jak często agent wybiera losową akcję zamiast najlepszej znanej.
 # - Wysoka wartość (np. 0.9) → dużo testowania losowych ruchów (eksploracja).
 # - Niska wartość (np. 0.1) → głównie wykorzystywanie tego, co już się nauczył (eksploatacja).
-exploration_rate = 0.55
-exploration_decrement_factor = 0.99
+exploration_rate = 0.9
+exploration_decrement_factor = 0.999
 starting_exploration_rate = exploration_rate
 
 # Liczba epizodów treningowych (ile razy agent zagra w całą grę od początku do końca).
 # Im więcej epizodów, tym lepiej agent się uczy, bo ma więcej doświadczeń.
 # Typowo od kilku tysięcy do setek tysięcy.
-num_episodes = 20000
+num_episodes = 10000
 
-Q = {}
 
 # -----------------------------
 # CHOOSE MOVE
 # -----------------------------
-def choose_action(board, exploration_rate):
+def choose_action(board, Q_table, exploration_rate):
     state = board_to_string(board)
 
-    if random.uniform(0, 1) < exploration_rate or state not in Q:
+    if random.uniform(0, 1) < exploration_rate or state not in Q_table:
         action = random_move(board)
     else:
-        q_values = Q[state]
+        q_values = Q_table[state]
         empty_cells = list_possible_moves(board)
         empty_q_values = [q_values[row, col] for (row, col) in empty_cells]
         max_q_value = max(empty_q_values)
@@ -127,17 +126,17 @@ def board_next_state(board, cell, player):
 # -----------------------------
 # UPDATE Q
 # -----------------------------
-def update_q_table(state, action, next_state, reward):
-    q_values = Q.get(state, np.zeros((3, 3))) # Retrieve the Q-values for a particular state from the Q-table dictionary Q.
+def update_q_table(Q_table, state, action, next_state, reward):
+    q_values = Q_table.get(state, np.zeros((3, 3))) # Retrieve the Q-values for a particular state from the Q-table dictionary Q.
 
     # Calculate the maximum Q-value for the next state
-    next_q_values = Q.get(board_to_string(next_state), np.zeros((3, 3)))
+    next_q_values = Q_table.get(board_to_string(next_state), np.zeros((3, 3)))
     max_next_q_value = np.max(next_q_values)
 
     # Q-learning update equation
     q_values[action[0], action[1]] += learning_rate * (reward + discount_factor * max_next_q_value - q_values[action[0], action[1]])
 
-    Q[state] = q_values
+    Q_table[state] = q_values
 
 # -----------------------------
 # TRAINING
@@ -145,9 +144,7 @@ def update_q_table(state, action, next_state, reward):
 
 def train():
     global exploration_rate
-    global Q
-    #global exploration_decrement_factor
-
+    Q = {}
     for episode in range(num_episodes):
         board = np.array([[None, None, None],
                           [None, None, None],
@@ -158,7 +155,7 @@ def train():
 
         while not game_over:
             # Choose an action based on the current state
-            action = choose_action(board, exploration_rate)
+            action = choose_action(board, Q, exploration_rate)
 
             # Make the chosen move
             row, col = action
@@ -174,16 +171,17 @@ def train():
                     reward = 0
                 else:
                     reward = -1
-                update_q_table(board_to_string(board), action, board, reward)
+                update_q_table(Q, board_to_string(board), action, board, reward)
 
             # Update the Q-table based on the immediate reward and the next state
             if not game_over:
                 next_state = board_next_state(board, action, current_player)
-                update_q_table(board_to_string(board), action, next_state, 0)
+                update_q_table(Q, board_to_string(board), action, next_state, 0)
                 current_player = 'O' if current_player == 'X' else 'X'
 
             # Decay the exploration rate
         exploration_rate = max(0.1, exploration_rate * exploration_decrement_factor)
+    return Q
 
 # -----------------------------
 # SAVE AND LOAD
@@ -256,6 +254,7 @@ def evaluate(games=1000):
         board = np.array([[None]*3 for _ in range(3)])
         current_player = 'X'
         game_over = False
+        winner = None
 
         while not game_over:
             if current_player == 'X':  # agent
@@ -286,7 +285,8 @@ def evaluate(games=1000):
                 dane = []
 
     skutecznosc = wins/games*100
-    slownik = {"skutecznosc": f"{skutecznosc:.2f}%", "wygrane": wins, "remisy": draws, "przegrane": losses,
+    skutecznosc_draws = draws/games*100
+    slownik = {"skutecznosc": f"{skutecznosc:.2f}%", "skutecznosc_draws": f"{skutecznosc_draws:.2f}%", "wygrane": wins, "remisy": draws, "przegrane": losses,
                "learning_rate": learning_rate, "discount_factor": discount_factor, "starting_exploration_rate": starting_exploration_rate,
                "exploration_decrement_factor": exploration_decrement_factor, "num_episodes": num_episodes}
 
@@ -297,6 +297,7 @@ def evaluate(games=1000):
 
     print(f"Wygrane: {wins}, Remisy: {draws}, Przegrane: {losses}")
     print(f"Skuteczność agenta: {skutecznosc:.2f}% wygranych")
+    print(f"Skuteczność w remisowaniu: {skutecznosc_draws:.2f}% zremisowanych")
 
 def battle_of_agents():
     pass
@@ -304,18 +305,18 @@ def battle_of_agents():
 # RUN MODEL
 if __name__ == "__main__":
     print("Trening agenta...")
-    train()
+    Q = train()
     save_model(Q)
 
 print("Ładowanie wytrenowanego modelu...")
 loaded_Q = load_model()
 if loaded_Q is None:
     print("Model nie został znaleziony, trenuję nowy.")
-    train()
+    Q = train()
     save_model(Q)
     loaded_Q = Q
 
-evaluate(10000)
+#evaluate(10000)
 
 
 

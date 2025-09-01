@@ -7,9 +7,13 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <button id="modeToggle">Zmień tryb (obecnie: PvP)</button>
+    <div class="container">
+        <button class ="box" id="modeToggle">Game Mode: PvP</button>
+    </div>
+
+    <h1>links:</h1>
     <a href="{{ url_for('history') }}">
-    <button id="history">Pokaż historię gier</button>
+        <button class ="box" id="history">Show game history</button>
     </a>
 
     <canvas id="canvas1"></canvas>

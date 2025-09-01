@@ -60,7 +60,7 @@ function getClickedCell(event) {
 function toggleGameMode() {
     if (!gameStarted) { //w warunku będzie wartość gameOver z sesji
         game.mode = game.mode === "PvP" ? "PvE" : "PvP";
-        modeToggleBtn.textContent = `Zmień tryb (obecnie: ${game.mode})`;
+        modeToggleBtn.textContent = `Game Mode: ${game.mode}`;
     } else {
         console.warn("Nie można zmienić trybu gry podczas trwania rozgrywki!");
     }
