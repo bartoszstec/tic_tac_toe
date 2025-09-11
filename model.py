@@ -88,7 +88,7 @@ discount_factor = 0.85
 # Określa jak często agent wybiera losową akcję zamiast najlepszej znanej.
 # - Wysoka wartość (np. 0.9) → dużo testowania losowych ruchów (eksploracja).
 # - Niska wartość (np. 0.1) → głównie wykorzystywanie tego, co już się nauczył (eksploatacja).
-exploration_rate = 0.9
+exploration_rate = 0.6
 exploration_decrement_factor = 0.999
 starting_exploration_rate = exploration_rate
 
@@ -96,7 +96,6 @@ starting_exploration_rate = exploration_rate
 # Im więcej epizodów, tym lepiej agent się uczy, bo ma więcej doświadczeń.
 # Typowo od kilku tysięcy do setek tysięcy.
 num_episodes = 10000
-
 
 # -----------------------------
 # CHOOSE MOVE
@@ -130,7 +129,7 @@ def update_q_table(Q_table, state, action, next_state, reward):
     q_values = Q_table.get(state, np.zeros((3, 3))) # Retrieve the Q-values for a particular state from the Q-table dictionary Q.
 
     # Calculate the maximum Q-value for the next state
-    next_q_values = Q_table.get(board_to_string(next_state), np.zeros((3, 3)))
+    next_q_values = Q_table.get(next_state, np.zeros((3, 3)))
     max_next_q_value = np.max(next_q_values)
 
     # Q-learning update equation
@@ -156,6 +155,8 @@ def train():
         while not game_over:
             # Choose an action based on the current state
             action = choose_action(board, Q, exploration_rate)
+            state = board.copy()
+            next_state = board_next_state(board, action, current_player)
 
             # Make the chosen move
             row, col = action
@@ -171,12 +172,11 @@ def train():
                     reward = 0
                 else:
                     reward = -1
-                update_q_table(Q, board_to_string(board), action, board, reward)
+                update_q_table(Q, board_to_string(state), action, board_to_string(next_state), reward)
 
             # Update the Q-table based on the immediate reward and the next state
             if not game_over:
-                next_state = board_next_state(board, action, current_player)
-                update_q_table(Q, board_to_string(board), action, next_state, 0)
+                update_q_table(Q, board_to_string(state), action, board_to_string(next_state), 0)
                 current_player = 'O' if current_player == 'X' else 'X'
 
             # Decay the exploration rate
