@@ -82,20 +82,20 @@ learning_rate = 0.001
 # Określa, jak bardzo agent "dba" o nagrody w przyszłości w porównaniu do nagrody tu i teraz.
 # - γ bliskie 1.0 → agent uczy się planować "na długą metę".
 # - γ bliskie 0 → agent patrzy tylko na natychmiastowe korzyści.
-discount_factor = 0.85
+discount_factor = 0.8
 
 # Współczynnik eksploracji (ε, exploration rate).
 # Określa jak często agent wybiera losową akcję zamiast najlepszej znanej.
 # - Wysoka wartość (np. 0.9) → dużo testowania losowych ruchów (eksploracja).
 # - Niska wartość (np. 0.1) → głównie wykorzystywanie tego, co już się nauczył (eksploatacja).
-exploration_rate = 0.6
-exploration_decrement_factor = 0.999
+exploration_rate = 0.85
+exploration_decrement_factor = 0.995
 starting_exploration_rate = exploration_rate
 
 # Liczba epizodów treningowych (ile razy agent zagra w całą grę od początku do końca).
 # Im więcej epizodów, tym lepiej agent się uczy, bo ma więcej doświadczeń.
 # Typowo od kilku tysięcy do setek tysięcy.
-num_episodes = 10000
+num_episodes = 100000
 
 # -----------------------------
 # CHOOSE MOVE
@@ -190,7 +190,7 @@ def save_model(Q_table, filename="q_table.pkl"):
     try:
         with open(filename, "wb") as f:
             pickle.dump(Q_table, f)
-            print("Zapisano plik pkl")
+            print(f"Zapisano plik o nazwie: {filename}")
     except Exception as e:
         print(f"Wystąpił błąd podczas zapisu: {e}")
 
@@ -198,7 +198,7 @@ def save_model(Q_table, filename="q_table.pkl"):
 def load_model(filename="q_table.pkl"):
     try:
         with open(filename, "rb") as f:
-            print("Model załadowany pomyślnie!")
+            print(f"Pomyślnie wczytano plik: {filename}!")
             return pickle.load(f)
     except FileNotFoundError:
         print(f"Plik '{filename}' nie został znaleziony.")
@@ -216,6 +216,7 @@ def trained_move(board):
 
         Args:
             board (np.array): Aktualny stan planszy.
+            using GLOBAL VALUE: loaded_Q
 
         Returns:
             tuple: Krotka (row, col) reprezentująca najlepszy ruch.
@@ -229,7 +230,7 @@ def trained_move(board):
         return None
 
     if state not in loaded_Q:
-        print("Nieznany stan, wykonuję losowy ruch.")
+        #print("Nieznany stan, wykonuję losowy ruch.")
         return random_move(board)
 
     q_values = loaded_Q[state]
@@ -248,8 +249,18 @@ def trained_move(board):
 # -----------------------------
 # EVALUATE MODEL
 # -----------------------------
-def evaluate(games=1000):
+def evaluate(purpose, model, games=1000):
     wins, draws, losses = 0, 0, 0
+    global loaded_Q
+    loaded_Q = load_model(model)
+
+    if purpose == 'attack':
+        agent_player = 'X'
+    elif purpose == 'defence':
+        agent_player = 'O'
+    else:
+        return print("Unknown evaluate purpose, evaluation process breaking...")
+
     for _ in range(games):
         board = np.array([[None]*3 for _ in range(3)])
         current_player = 'X'
@@ -257,9 +268,9 @@ def evaluate(games=1000):
         winner = None
 
         while not game_over:
-            if current_player == 'X':  # agent
+            if current_player == agent_player: # agent turn
                 move = trained_move(board)
-            else:  # przeciwnik losowy
+            else:  # random opponent
                 possible = list_possible_moves(board)
                 move = random.choice(possible)
 
@@ -267,12 +278,12 @@ def evaluate(games=1000):
             game_over, winner = is_game_over(board)
             current_player = 'O' if current_player == 'X' else 'X'
 
-        if winner == 'X':
+        if winner == agent_player:
             wins += 1
-        elif winner == 'O':
-            losses += 1
         elif winner == 'draw':
             draws += 1
+        else:
+            losses += 1
 
     dane = []
     filename = 'skutecznosc_vs_parametry.json'
@@ -284,9 +295,10 @@ def evaluate(games=1000):
             except json.JSONDecodeError:
                 dane = []
 
-    skutecznosc = wins/games*100
-    skutecznosc_draws = draws/games*100
-    slownik = {"skutecznosc": f"{skutecznosc:.2f}%", "skutecznosc_draws": f"{skutecznosc_draws:.2f}%", "wygrane": wins, "remisy": draws, "przegrane": losses,
+    effectiveness = wins/games*100
+    effectiveness_draws = draws/games*100
+    loss_ratio = 100 - effectiveness_draws - effectiveness
+    slownik = {"training_purpose": f"{purpose}", "effectiveness": f"{effectiveness:.2f}%", "effectiveness_draws": f"{effectiveness_draws:.2f}%", "loss_ratio":f"{loss_ratio:.2f}", "wins": wins, "draws": draws, "losses": losses,
                "learning_rate": learning_rate, "discount_factor": discount_factor, "starting_exploration_rate": starting_exploration_rate,
                "exploration_decrement_factor": exploration_decrement_factor, "num_episodes": num_episodes}
 
@@ -296,27 +308,82 @@ def evaluate(games=1000):
         json.dump(dane, f, indent=2)
 
     print(f"Wygrane: {wins}, Remisy: {draws}, Przegrane: {losses}")
-    print(f"Skuteczność agenta: {skutecznosc:.2f}% wygranych")
-    print(f"Skuteczność w remisowaniu: {skutecznosc_draws:.2f}% zremisowanych")
+    print(f"Skuteczność agenta: {effectiveness:.2f}% wygranych")
+    print(f"Skuteczność w remisowaniu: {effectiveness_draws:.2f}% zremisowanych")
+    print(f"Procent przegranych gier: {loss_ratio:.2f}% przegranych")
 
-def battle_of_agents():
-    pass
+def train_defence():
+    global exploration_rate
+    Q_attack = load_model()
+    Q_defence = {}
+    for episode in range(num_episodes):
+        board = np.array([[None, None, None],
+                          [None, None, None],
+                          [None, None, None]])
+
+        current_player = 'X'
+        game_over = False
+
+        while not game_over:
+            if current_player == 'X':
+                Q = Q_attack
+            else:
+                Q = Q_defence
+
+            # Choose an action based on the current state of board
+            action = choose_action(board, Q, exploration_rate)
+
+            # Save actual and next state of board
+            state = board.copy()
+            next_state = board_next_state(board, action, current_player)
+
+            # Make the chosen move
+            row, col = action
+            board[row, col] = current_player
+
+            # Check if the game is over
+            game_over, winner = is_game_over(board)
+            if current_player == 'O':
+                if game_over:
+                    # Update the Q-table with the final reward
+                    if winner == 'O':
+                        reward = 1
+                    elif winner == 'draw':
+                        reward = 0.9
+                    else:
+                        reward = -1
+                    update_q_table(Q, board_to_string(state), action, board_to_string(next_state), reward)
+                else:
+                    update_q_table(Q, board_to_string(state), action, board_to_string(next_state), -0.5)
+
+            current_player = 'O' if current_player == 'X' else 'X'
+
+            # Decay the exploration rate
+        exploration_rate = max(0.1, exploration_rate * exploration_decrement_factor)
+    return Q_defence
 
 # RUN MODEL
-if __name__ == "__main__":
-    print("Trening agenta...")
-    Q = train()
-    save_model(Q)
+# if __name__ == "__main__":
+#     print("Trening agenta...")
+#     Q = train()
+#     save_model(Q)
+#     Q1 = train_defence()
+#     save_model(Q1, "q_table_defence.pkl")
 
-print("Ładowanie wytrenowanego modelu...")
-loaded_Q = load_model()
-if loaded_Q is None:
-    print("Model nie został znaleziony, trenuję nowy.")
-    Q = train()
-    save_model(Q)
-    loaded_Q = Q
+# print("Ładowanie wytrenowanego modelu...")
+# loaded_Q = load_model("q_table_defence.pkl")
+# if loaded_Q is None:
+#     print("Model nie został znaleziony, trenuję nowy.")
+#     Q = train()
+#     save_model(Q)
+#     loaded_Q = Q
 
-#evaluate(10000)
+#evaluate("attack", "q_table.pkl", 10000)
+
+# Q1 = train_defence()
+# save_model(Q1, "q_table_defence.pkl")
+#evaluate("defence", "q_table_defence.pkl", 10000)
+
 
 
 
