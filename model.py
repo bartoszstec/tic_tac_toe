@@ -141,9 +141,10 @@ def update_q_table(Q_table, state, action, next_state, reward):
 # TRAINING
 # -----------------------------
 
-def train():
+def train_agents():
     global exploration_rate
-    Q = {}
+    Q_attack = {}
+    Q_defence = {}
     for episode in range(num_episodes):
         board = np.array([[None, None, None],
                           [None, None, None],
@@ -153,8 +154,15 @@ def train():
         game_over = False
 
         while not game_over:
-            # Choose an action based on the current state
+            if current_player == 'X':
+                Q = Q_attack
+            else:
+                Q = Q_defence
+
+            # Choose an action based on the current state of board
             action = choose_action(board, Q, exploration_rate)
+
+            # Save actual and next state of board
             state = board.copy()
             next_state = board_next_state(board, action, current_player)
 
@@ -164,24 +172,37 @@ def train():
 
             # Check if the game is over
             game_over, winner = is_game_over(board)
-            if game_over:
-                #Update the Q-table with the final reward
-                if winner == current_player:
-                    reward = 1
-                elif winner == 'draw':
-                    reward = 0
+            if current_player == 'O':
+                if game_over:
+                    # Update the Q-table with the final reward
+                    if winner == 'O':
+                        reward = 0.6
+                    elif winner == 'draw':
+                        reward = 1
+                    else:
+                        reward = -1
+                    update_q_table(Q, board_to_string(state), action, board_to_string(next_state), reward)
                 else:
-                    reward = -1
-                update_q_table(Q, board_to_string(state), action, board_to_string(next_state), reward)
+                    update_q_table(Q, board_to_string(state), action, board_to_string(next_state), -0.5)
 
-            # Update the Q-table based on the immediate reward and the next state
-            if not game_over:
-                update_q_table(Q, board_to_string(state), action, board_to_string(next_state), 0)
-                current_player = 'O' if current_player == 'X' else 'X'
+            if current_player == 'X':
+                if game_over:
+                    # Update the Q-table with the final reward
+                    if winner == 'X':
+                        reward = 1
+                    elif winner == 'draw':
+                        reward = 0
+                    else:
+                        reward = -1
+                    update_q_table(Q, board_to_string(state), action, board_to_string(next_state), reward)
+                else:
+                    update_q_table(Q, board_to_string(state), action, board_to_string(next_state), -0.5)
+
+            current_player = 'O' if current_player == 'X' else 'X'
 
             # Decay the exploration rate
         exploration_rate = max(0.1, exploration_rate * exploration_decrement_factor)
-    return Q
+    return Q_attack, Q_defence
 
 # -----------------------------
 # SAVE AND LOAD
@@ -312,55 +333,7 @@ def evaluate(purpose, model, games=1000):
     print(f"Skuteczność w remisowaniu: {effectiveness_draws:.2f}% zremisowanych")
     print(f"Procent przegranych gier: {loss_ratio:.2f}% przegranych")
 
-def train_defence():
-    global exploration_rate
-    Q_attack = load_model()
-    Q_defence = {}
-    for episode in range(num_episodes):
-        board = np.array([[None, None, None],
-                          [None, None, None],
-                          [None, None, None]])
 
-        current_player = 'X'
-        game_over = False
-
-        while not game_over:
-            if current_player == 'X':
-                Q = Q_attack
-            else:
-                Q = Q_defence
-
-            # Choose an action based on the current state of board
-            action = choose_action(board, Q, exploration_rate)
-
-            # Save actual and next state of board
-            state = board.copy()
-            next_state = board_next_state(board, action, current_player)
-
-            # Make the chosen move
-            row, col = action
-            board[row, col] = current_player
-
-            # Check if the game is over
-            game_over, winner = is_game_over(board)
-            if current_player == 'O':
-                if game_over:
-                    # Update the Q-table with the final reward
-                    if winner == 'O':
-                        reward = 1
-                    elif winner == 'draw':
-                        reward = 0.9
-                    else:
-                        reward = -1
-                    update_q_table(Q, board_to_string(state), action, board_to_string(next_state), reward)
-                else:
-                    update_q_table(Q, board_to_string(state), action, board_to_string(next_state), -0.5)
-
-            current_player = 'O' if current_player == 'X' else 'X'
-
-            # Decay the exploration rate
-        exploration_rate = max(0.1, exploration_rate * exploration_decrement_factor)
-    return Q_defence
 
 # RUN MODEL
 # if __name__ == "__main__":
@@ -380,9 +353,12 @@ def train_defence():
 
 #evaluate("attack", "q_table.pkl", 10000)
 
-# Q1 = train_defence()
-# save_model(Q1, "q_table_defence.pkl")
-#evaluate("defence", "q_table_defence.pkl", 10000)
+Qa, Qd = train_agents()
+save_model(Qa, "q_table_A.pkl")
+save_model(Qd, "q_table_D.pkl")
+
+evaluate("attack", "q_table_A.pkl", 10000)
+evaluate("defence", "q_table_D.pkl", 10000)
 
 
 
