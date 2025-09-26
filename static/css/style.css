@@ -94,3 +94,24 @@ button {
     border: none;
     background: transparent;
 }
+
+/* Definicja animacji: miganie cienia */
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 0, 100, 0.7); /* Początkowy cień niewidoczny */
+    }
+    50% {
+        box-shadow: 0 0 10px 5px rgba(255, 0, 100, 0.9); /* Rozszerzenie cienia (MIG!) */
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 0, 100, 0.7); /* Powrót do niewidocznego */
+    }
+}
+
+/* Klasa do włączenia animacji migania */
+.blink {
+    /* Upewnij się, że ten styl nie nadpisze istniejącego box-shadow */
+    animation: pulse 1.5s infinite; /* Użyj animacji 'pulse', trwa 1.5s i jest zapętlona */
+    /* Zmień kolor na bardziej widoczny, jeśli jest to konieczne */
+    color: #cc0033;
+}

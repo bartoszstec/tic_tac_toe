@@ -2,16 +2,17 @@ import requests
 import copy
 
 class Game:
-    def __init__(self, board=None, current_player='X', game_over=False, winner=None, winning_line=None):
+    def __init__(self, board=None, current_player='X', game_over=False, winner=None, winning_line=None, strategy='defence'):
         self.board = board or [[None]*3 for _ in range(3)]
         self.current_player = current_player
         self.game_over = game_over
         self.winner = winner
         self.winning_line = winning_line
+        self.strategy = strategy
         self.move_log = []
 
     def __repr__(self):
-        return f"{type(self).__name__}(board = {self.board}, current_player = {self.current_player}, game_over = {self.game_over}, winner = {self.winner}, move_log = {self.move_log} winning_line = {self.winning_line})"
+        return f"{type(self).__name__}(board = {self.board}, current_player = {self.current_player}, game_over = {self.game_over}, winner = {self.winner}, move_log = {self.move_log} winning_line = {self.winning_line}, strategy = {self.strategy})"
 
     def switch_player(self):
         if self.current_player == 'X':
@@ -87,12 +88,4 @@ class Game:
             elif self.check_full_board():
                 self.game_over = True
                 self.save_game_result(self.winner)
-
-
-# game = Game()
-# game.board = [[None, None, None], [None, None, None], [None, None, None]]
-# game.player_move(1,2)
-# game.player_move(2,2)
-# print(game.board)
-# print(game.get_winning_line())
 

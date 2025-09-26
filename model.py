@@ -231,30 +231,29 @@ def load_model(filename="q_table.pkl"):
 # -----------------------------
 # PERFORM TRAINED MOVE
 # -----------------------------
-def trained_move(board):
+def trained_move(board, Q_table):
     """
-        Wybiera najlepszy ruch na podstawie wytrenowanej Q-tabeli.
+        Choosing the best move basen on trained Q-table.
 
         Args:
             board (np.array): Aktualny stan planszy.
-            using GLOBAL VALUE: loaded_Q
+            table with values of profitability of moves: Q_table
 
         Returns:
             tuple: Krotka (row, col) reprezentująca najlepszy ruch.
             None: Jeśli nie ma dostępnych ruchów.
         """
-    global loaded_Q
     state = board_to_string(board)
     possible_moves = list_possible_moves(board)
 
     if not possible_moves:
         return None
 
-    if state not in loaded_Q:
+    if state not in Q_table:
         #print("Nieznany stan, wykonuję losowy ruch.")
         return random_move(board)
 
-    q_values = loaded_Q[state]
+    q_values = Q_table[state]
 
     # Znajdź wartości Q dla dostępnych ruchów
     empty_q_values = [q_values[row, col] for (row, col) in possible_moves]
@@ -272,8 +271,7 @@ def trained_move(board):
 # -----------------------------
 def evaluate(purpose, model, games=1000):
     wins, draws, losses = 0, 0, 0
-    global loaded_Q
-    loaded_Q = load_model(model)
+    Q_table = load_model(model)
 
     if purpose == 'attack':
         agent_player = 'X'
@@ -290,7 +288,7 @@ def evaluate(purpose, model, games=1000):
 
         while not game_over:
             if current_player == agent_player: # agent turn
-                move = trained_move(board)
+                move = trained_move(board, Q_table)
             else:  # random opponent
                 possible = list_possible_moves(board)
                 move = random.choice(possible)
@@ -336,29 +334,34 @@ def evaluate(purpose, model, games=1000):
 
 
 # RUN MODEL
-# if __name__ == "__main__":
-#     print("Trening agenta...")
-#     Q = train()
-#     save_model(Q)
-#     Q1 = train_defence()
-#     save_model(Q1, "q_table_defence.pkl")
+if __name__ == "__main__":
+    print("Ładowanie wytrenowanego modelu...")
+    Qa = load_model("q_table_A.pkl")
+    Qd = load_model("q_table_D.pkl")
+    if (Qa or Qd) is None:
+        print("Trening agenta...")
+        Qa, Qd = train_agents()
+        save_model(Qa, "q_table_A.pkl")
+        save_model(Qd, "q_table_D.pkl")
+        evaluate("attack", "q_table_A.pkl", 10000)
+        evaluate("defence", "q_table_D.pkl", 10000)
+        Qa = load_model("q_table_A.pkl")
+        Qd = load_model("q_table_D.pkl")
 
 # print("Ładowanie wytrenowanego modelu...")
-# loaded_Q = load_model("q_table_defence.pkl")
-# if loaded_Q is None:
+# Qa = load_model("q_table_A.pkl")
+# Qd = load_model("q_table_D.pkl")
+# loaded_Q = Qd
+# if (Qa or Qd) is None:
 #     print("Model nie został znaleziony, trenuję nowy.")
-#     Q = train()
-#     save_model(Q)
-#     loaded_Q = Q
+#     Qa, Qd = train_agents()
+#     save_model(Qa, "q_table_A.pkl")
+#     save_model(Qd, "q_table_D.pkl")
+#     evaluate("attack", "q_table_A.pkl", 10000)
+#     evaluate("defence", "q_table_D.pkl", 10000)
+#     Qa = load_model("q_table_A.pkl")
+#     Qd = load_model("q_table_D.pkl")
 
-#evaluate("attack", "q_table.pkl", 10000)
-
-Qa, Qd = train_agents()
-save_model(Qa, "q_table_A.pkl")
-save_model(Qd, "q_table_D.pkl")
-
-evaluate("attack", "q_table_A.pkl", 10000)
-evaluate("defence", "q_table_D.pkl", 10000)
 
 
 

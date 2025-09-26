@@ -9,6 +9,7 @@ canvas.height =  gameSize;
 
 let gameActive = true; //flaga do kontrolowania funkcji
 let gameStarted = false;
+let aiFirstMoveFlag = false;
 
 // Inicjalizacja Gry
 const game = new Game(canvas.width, canvas.height, ctx); //utworzenie obiektu gry
@@ -29,17 +30,30 @@ fetch("/start-game") //poinformowanie backendu o starcie gry
     const modeToggleBtn = document.getElementById("modeToggle");
     modeToggleBtn.addEventListener("click", toggleGameMode);
 
+    const startBtn = document.getElementById("startButton");
+    startBtn.addEventListener('click', firstAiMove);
+
 //Funkcje pomocnicze
 function handleCanvasClick(event) {
     gameStarted = true;
     const { row, col } = getClickedCell(event);
-    console.log("Kliknięto:", { row, col});
 
     switch(game.mode){
       case "PvP":
         makePlayerMove(row, col);
         break;
-      case "PvE":
+      case "Player vs AI":
+        performAiGame(row, col);
+        break;
+      case "AI vs Player":
+        if (!aiFirstMoveFlag) {
+            gameActive = false;
+            gameStarted = false;
+            console.warn("Kliknij przycisk start, aby rozpocząć grę z AI");
+            alert("Kliknij przycisk start, aby rozpocząć grę z AI");
+            return;
+        }
+
         performAiGame(row, col);
         break;
     default:
@@ -58,8 +72,29 @@ function getClickedCell(event) {
 }
 
 function toggleGameMode() {
-    if (!gameStarted) { //w warunku będzie wartość gameOver z sesji
-        game.mode = game.mode === "PvP" ? "PvE" : "PvP";
+    if (!gameStarted) {
+        if (game.mode === "PvP"){
+            game.mode = "Player vs AI"
+            startBtn.style.display = 'none';
+            fetch("/change-strategy", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ strategy: "defence" })
+            });
+            }
+            else if (game.mode === "Player vs AI"){
+                game.mode = "AI vs Player"
+                startBtn.style.display = 'block';
+                fetch("/change-strategy", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ strategy: "attack" })
+                });
+                }
+                else if (game.mode === "AI vs Player") {
+                game.mode = "PvP"
+                startBtn.style.display = 'none';
+                }
         modeToggleBtn.textContent = `Game Mode: ${game.mode}`;
     } else {
         console.warn("Nie można zmienić trybu gry podczas trwania rozgrywki!");
@@ -108,6 +143,24 @@ function performAiGame(row, col) {
     .catch(err => console.error("Błąd PvE:", err));
 }
 
+function firstAiMove() {
+    if (!aiFirstMoveFlag) {
+        startBtn.classList.remove('blink');
+        fetch("/AI-move", { method: "POST" })
+            .then(res => res.json())
+            .then(aiData => {
+                console.log("ruch wykonał gracz:", aiData.current_player);
+                game.drawSymbol(aiData.aiRow, aiData.aiCol, aiData.current_player);
+
+                // set all flags after move is done
+                aiFirstMoveFlag = true;
+                gameActive = true;
+                gameStarted = true;
+            })
+            .catch(err => console.error("Błąd pierwszego ruchu AI:", err));
+    }
+}
+
 function tryEndGame(data) {
     if (data.winner) {
         gameActive = false;
@@ -129,4 +182,6 @@ function resetGame() {
     game.clearBoard();
     gameActive = true;
     gameStarted = false;
+    aiFirstMoveFlag = false;
+    startBtn.classList.add('blink');
 }
