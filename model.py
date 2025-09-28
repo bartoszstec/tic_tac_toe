@@ -76,21 +76,22 @@ def is_board_full(board):
 # Określa jak bardzo nowe doświadczenia (nowe Q-value) nadpisują stare wartości.
 # - Wysoka wartość (np. 0.5) → szybkie uczenie, ale niestabilne.
 # - Niska wartość (np. 0.001) → wolne uczenie, ale bardziej stabilne.
-learning_rate = 0.001
+learning_rate = 0.01
 
 # Czynnik dyskontujący przyszłe nagrody (γ, discount factor).
 # Określa, jak bardzo agent "dba" o nagrody w przyszłości w porównaniu do nagrody tu i teraz.
 # - γ bliskie 1.0 → agent uczy się planować "na długą metę".
 # - γ bliskie 0 → agent patrzy tylko na natychmiastowe korzyści.
-discount_factor = 0.8
+discount_factor = 0.85
 
 # Współczynnik eksploracji (ε, exploration rate).
 # Określa jak często agent wybiera losową akcję zamiast najlepszej znanej.
 # - Wysoka wartość (np. 0.9) → dużo testowania losowych ruchów (eksploracja).
 # - Niska wartość (np. 0.1) → głównie wykorzystywanie tego, co już się nauczył (eksploatacja).
-exploration_rate = 0.85
-exploration_decrement_factor = 0.995
-starting_exploration_rate = exploration_rate
+epsilon_min = 0.01
+epsilon_max = 0.9
+decay_rate = 0.001
+
 
 # Liczba epizodów treningowych (ile razy agent zagra w całą grę od początku do końca).
 # Im więcej epizodów, tym lepiej agent się uczy, bo ma więcej doświadczeń.
@@ -141,10 +142,9 @@ def update_q_table(Q_table, state, action, next_state, reward):
 # TRAINING
 # -----------------------------
 
-def train_agents():
-    global exploration_rate
-    Q_attack = {}
-    Q_defence = {}
+def train_agents(epsilon_min, epsilon_max, decay_rate):
+    Q_attack, Q_defence = {}, {}
+
     for episode in range(num_episodes):
         board = np.array([[None, None, None],
                           [None, None, None],
@@ -152,19 +152,23 @@ def train_agents():
 
         current_player = 'X'
         game_over = False
+        last_moves = {"X": None, "O": None}
+
+        # Set exploration rate for this episode
+        exploration_rate = epsilon_min + (epsilon_max - epsilon_min) * np.exp(-decay_rate * episode)
+        # print(exploration_rate)
 
         while not game_over:
-            if current_player == 'X':
-                Q = Q_attack
-            else:
-                Q = Q_defence
+            Q = Q_attack if current_player == 'X' else Q_defence
 
-            # Choose an action based on the current state of board
+            # Choose an action
             action = choose_action(board, Q, exploration_rate)
+            state_str = board_to_string(board)
+            next_board = board_next_state(board, action, current_player)
+            next_state_str = board_to_string(next_board)
 
-            # Save actual and next state of board
-            state = board.copy()
-            next_state = board_next_state(board, action, current_player)
+            # zapamiętaj ostatni ruch gracza
+            last_moves[current_player] = (state_str, action, next_state_str)
 
             # Make the chosen move
             row, col = action
@@ -172,36 +176,23 @@ def train_agents():
 
             # Check if the game is over
             game_over, winner = is_game_over(board)
-            if current_player == 'O':
-                if game_over:
-                    # Update the Q-table with the final reward
-                    if winner == 'O':
-                        reward = 0.6
-                    elif winner == 'draw':
-                        reward = 1
-                    else:
-                        reward = -1
-                    update_q_table(Q, board_to_string(state), action, board_to_string(next_state), reward)
-                else:
-                    update_q_table(Q, board_to_string(state), action, board_to_string(next_state), -0.5)
 
-            if current_player == 'X':
-                if game_over:
-                    # Update the Q-table with the final reward
-                    if winner == 'X':
-                        reward = 1
-                    elif winner == 'draw':
-                        reward = 0
-                    else:
-                        reward = -1
-                    update_q_table(Q, board_to_string(state), action, board_to_string(next_state), reward)
-                else:
-                    update_q_table(Q, board_to_string(state), action, board_to_string(next_state), -0.5)
+            if game_over:
+                if winner == 'X':
+                    update_q_table(Q_attack, *last_moves['X'], reward=1)
+                    update_q_table(Q_defence, *last_moves['O'], reward=-1)
+                elif winner == 'O':
+                    update_q_table(Q_attack, *last_moves['X'], reward=-1)
+                    update_q_table(Q_defence, *last_moves['O'], reward=1)
+                else:  # draw
+                    update_q_table(Q_attack, *last_moves['X'], reward=0)
+                    update_q_table(Q_defence, *last_moves['O'], reward=1)
+            else:
+                # ongoing reward
+                ongoing_reward = -0.5 if current_player == 'X' else 0
+                update_q_table(Q, state_str, action, next_state_str, ongoing_reward)
 
             current_player = 'O' if current_player == 'X' else 'X'
-
-            # Decay the exploration rate
-        exploration_rate = max(0.1, exploration_rate * exploration_decrement_factor)
     return Q_attack, Q_defence
 
 # -----------------------------
@@ -236,8 +227,8 @@ def trained_move(board, Q_table):
         Choosing the best move basen on trained Q-table.
 
         Args:
-            board (np.array): Aktualny stan planszy.
-            table with values of profitability of moves: Q_table
+            board (np.array): Current state of board.
+            Q_table (dict): table with Q vlaues,
 
         Returns:
             tuple: Krotka (row, col) reprezentująca najlepszy ruch.
@@ -250,7 +241,7 @@ def trained_move(board, Q_table):
         return None
 
     if state not in Q_table:
-        #print("Nieznany stan, wykonuję losowy ruch.")
+        print("Nieznany stan, wykonuję losowy ruch.")
         return random_move(board)
 
     q_values = Q_table[state]
@@ -271,7 +262,7 @@ def trained_move(board, Q_table):
 # -----------------------------
 def evaluate(purpose, model, games=1000):
     wins, draws, losses = 0, 0, 0
-    Q_table = load_model(model)
+    Q_table = model
 
     if purpose == 'attack':
         agent_player = 'X'
@@ -317,15 +308,18 @@ def evaluate(purpose, model, games=1000):
     effectiveness = wins/games*100
     effectiveness_draws = draws/games*100
     loss_ratio = 100 - effectiveness_draws - effectiveness
-    slownik = {"training_purpose": f"{purpose}", "effectiveness": f"{effectiveness:.2f}%", "effectiveness_draws": f"{effectiveness_draws:.2f}%", "loss_ratio":f"{loss_ratio:.2f}", "wins": wins, "draws": draws, "losses": losses,
-               "learning_rate": learning_rate, "discount_factor": discount_factor, "starting_exploration_rate": starting_exploration_rate,
-               "exploration_decrement_factor": exploration_decrement_factor, "num_episodes": num_episodes}
+    slownik = {"training_purpose": f"{purpose}", "effectiveness": f"{effectiveness:.2f}%", "effectiveness_draws": f"{effectiveness_draws:.2f}%",
+               "loss_ratio":f"{loss_ratio:.2f}", "wins": wins, "draws": draws, "losses": losses,
+               "learning_rate": learning_rate, "discount_factor": discount_factor, "num_episodes": num_episodes,
+               "epsilon_min": epsilon_min, "epsilon_max": epsilon_max, "decay_rate": decay_rate}
 
     dane.append(slownik)
 
     with open(filename, 'w') as f:
         json.dump(dane, f, indent=2)
 
+    print("--------------------------------------------------------------------")
+    print(f"CEL AGENTA: {purpose}")
     print(f"Wygrane: {wins}, Remisy: {draws}, Przegrane: {losses}")
     print(f"Skuteczność agenta: {effectiveness:.2f}% wygranych")
     print(f"Skuteczność w remisowaniu: {effectiveness_draws:.2f}% zremisowanych")
@@ -340,27 +334,19 @@ if __name__ == "__main__":
     Qd = load_model("q_table_D.pkl")
     if (Qa or Qd) is None:
         print("Trening agenta...")
-        Qa, Qd = train_agents()
+        Qa, Qd = train_agents(epsilon_min, epsilon_max, decay_rate)
         save_model(Qa, "q_table_A.pkl")
         save_model(Qd, "q_table_D.pkl")
-        evaluate("attack", "q_table_A.pkl", 10000)
-        evaluate("defence", "q_table_D.pkl", 10000)
-        Qa = load_model("q_table_A.pkl")
-        Qd = load_model("q_table_D.pkl")
+        evaluate("attack", Qa, 10000)
+        evaluate("defence", Qd, 10000)
+        #Qa = load_model("q_table_A.pkl")
+        #Qd = load_model("q_table_D.pkl")
 
-# print("Ładowanie wytrenowanego modelu...")
-# Qa = load_model("q_table_A.pkl")
-# Qd = load_model("q_table_D.pkl")
-# loaded_Q = Qd
-# if (Qa or Qd) is None:
-#     print("Model nie został znaleziony, trenuję nowy.")
-#     Qa, Qd = train_agents()
-#     save_model(Qa, "q_table_A.pkl")
-#     save_model(Qd, "q_table_D.pkl")
-#     evaluate("attack", "q_table_A.pkl", 10000)
-#     evaluate("defence", "q_table_D.pkl", 10000)
-#     Qa = load_model("q_table_A.pkl")
-#     Qd = load_model("q_table_D.pkl")
+    # Qa, Qd = train_agents(epsilon_min, epsilon_max, decay_rate)
+    # save_model(Qa, "q_table_A.pkl")
+    # save_model(Qd, "q_table_D.pkl")
+    # evaluate("attack", Qa, 10000)
+    # evaluate("defence", Qd, 10000)
 
 
 
