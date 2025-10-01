@@ -4,24 +4,18 @@ This project re-imagines the classic Tic-Tac-Toe experience by leveraging **Rein
 
 The core technical distinction is the deployment of **two specialized Q-Learning models**: a high-win-rate **Offensive Agent** and a risk-minimizing **Defensive Agent**. This dual-agent architecture demonstrates advanced proficiency in custom RL training, model specialization, and strategic policy design.
 
----
-
 ## 🎮 Try it Out 
 *(azure hosted demo)*
-
----
 
 ## ✨ Functionalities
 - **PvP** Mode – classic two-player game.  
 - **PVE** Mode – playing against the agent (you: attack, agent: defends).  
 - **EVP** Mode – playing against the agent (you: defend, agent: attacks).
 - Two RL agents:
-  - **ofensive** – his main target is to win the game as quickly as possible,  
+  - **offensive** – his main target is to win the game as quickly as possible,  
   - **defensive** – his target is mainly to draw the game, but also values victory when you make mistakes.  
 - Game history page.
 - Simple web interface.  
-
----
 
 ## 🤖 Reinforcement Learning Agents
 The project utilizes a simple **Q-Learning model** for agent training. Crucially, instead of a single universal agent, it employs **two independently trained Q-Learning models**, each optimized for a distinct strategic objective. The high performance achieved is a direct result of tailored training and meticulous design choices.
@@ -59,8 +53,6 @@ When the Q-table presents multiple moves with the same highest Q-value, the agen
 - Prevents Determinism: It avoids the agent falling into predictable, suboptimal, or cyclical move patterns.
 - Encourages Subtle Exploration: It supports continuous, low-level testing of the best possible action paths, refining the strategy even after the main learning phase is complete.
 
----
-
 ## 🛠️ Project structure
 - **Backend (Python):**  
   - `app.py` – server startup and communication logic.  
@@ -76,20 +68,18 @@ Backend is implemented to handle multiple games by generating unique ID for ever
 
 Simple and easy to use interface.
 
----
 
 ## 🚀 Starting instructions
 ### ✅ Prerequisites
 - Python 3.12+ 
 - pip  25.2
 
----
 
 1. Clone repository.
 ```bash
    git clone https://github.com/bartoszstec/tic_tac_toe
 ```
-2. Create virtual environment and activate it.
+1. Create virtual environment and activate it.
 ```bash
   python -m venv venv
   source venv/bin/activate   # on Linux / macOS
@@ -114,21 +104,16 @@ python model.py
    flask run
 ```
 
-6. Go on flask serwer link and play
-- By default Flask runs on:
+6. Go on flask server link and play
+- By default, Flask runs on:
 👉 http://127.0.0.1:5000
-
-<!-- Warto dodać tu szczegóły: jakiej wersji Pythona używasz, jakie biblioteki są wymagane itp. -->
-
----
 
 ## 📌 Possible development direction
 - Interface improvements.
 - Online play option.
 - Introduction of more advanced ML agents.
 
----
 
 ## 📄 License
-This project is licensed under the MIT License.  
+This project is licensed under the MIT License.
 See the [LICENSE](./LICENSE) file for details.
