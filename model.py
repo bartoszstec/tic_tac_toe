@@ -39,9 +39,6 @@ def random_move(board):
     else:
         return None
 
-# WIN -> True, winning line
-# DRAW -> True, 'draw'
-# STILL PLAYING -> None
 def is_game_over(board):
     winning_lines = [
         [(0, 0), (0, 1), (0, 2)],
@@ -60,9 +57,9 @@ def is_game_over(board):
             values.append(board[r][c])
         if values[0] is not None and values[0] == values[1] and values[1] == values[2]:
             return True, values[0]
-    if is_board_full(board):
-        return True, 'draw'
-    return False, None
+    if is_board_full(board):            # WIN -> True, winning line
+        return True, 'draw'             # DRAW -> True, 'draw'
+    return False, None                  # STILL PLAYING -> None
 
 def is_board_full(board):
     return all(element is not None for row in board for element in row)
@@ -72,30 +69,33 @@ def is_board_full(board):
 # Q-learning PARAMS
 # -----------------------------
 
-# Tempo uczenia się (α, learning rate).
-# Określa jak bardzo nowe doświadczenia (nowe Q-value) nadpisują stare wartości.
-# - Wysoka wartość (np. 0.5) → szybkie uczenie, ale niestabilne.
-# - Niska wartość (np. 0.001) → wolne uczenie, ale bardziej stabilne.
+# Learning pace (learning rate).
+# It determines how much new experiences (new Q-values) overwrite old values.
+# - High value (e.g. 0.5) → fast learning but unstable.
+# - Low value (e.g. 0.001) → slow learning, but more stable.
 learning_rate = 0.01
 
-# Czynnik dyskontujący przyszłe nagrody (γ, discount factor).
-# Określa, jak bardzo agent "dba" o nagrody w przyszłości w porównaniu do nagrody tu i teraz.
-# - γ bliskie 1.0 → agent uczy się planować "na długą metę".
-# - γ bliskie 0 → agent patrzy tylko na natychmiastowe korzyści.
+# Factor that discounts future rewards (discount factor).
+# It determines how much the agent "cares" about rewards in the future compared to rewards in the here and now.
+# - close to 1.0 → the agent learns to plan "for the long term".
+# - close to 0 → the agent only looks at immediate benefits.
 discount_factor = 0.85
 
-# Współczynnik eksploracji (ε, exploration rate).
-# Określa jak często agent wybiera losową akcję zamiast najlepszej znanej.
-# - Wysoka wartość (np. 0.9) → dużo testowania losowych ruchów (eksploracja).
-# - Niska wartość (np. 0.1) → głównie wykorzystywanie tego, co już się nauczył (eksploatacja).
+# Exploration rate (using ε).
+# Determines how often the agent chooses a random action instead of the best known one.
+# - High value (e.g. 0.9) → a lot of testing random moves (exploration).
+# - Low value (e.g. 0.1) → mainly using what has already been learned (exploitation).
+# exploration_rate parameter is different for each episode and is determined by:
+# FORMULA:      ϵ = ϵ_min + (ϵ_max - ϵ_min) * e^(-decay_rate * episode)
+# (calculations in the training function)
 epsilon_min = 0.01
 epsilon_max = 0.9
 decay_rate = 0.001
 
 
-# Liczba epizodów treningowych (ile razy agent zagra w całą grę od początku do końca).
-# Im więcej epizodów, tym lepiej agent się uczy, bo ma więcej doświadczeń.
-# Typowo od kilku tysięcy do setek tysięcy.
+# Number of training episodes (number of times the agent plays the entire game from start to finish).
+# The more episodes, the better the agent learns because he has more experience.
+# Typically from several thousand to hundreds of thousands.
 num_episodes = 100000
 
 # -----------------------------
@@ -167,7 +167,7 @@ def train_agents(epsilon_min, epsilon_max, decay_rate):
             next_board = board_next_state(board, action, current_player)
             next_state_str = board_to_string(next_board)
 
-            # zapamiętaj ostatni ruch gracza
+            # remember the player's last move
             last_moves[current_player] = (state_str, action, next_state_str)
 
             # Make the chosen move
@@ -202,21 +202,21 @@ def save_model(Q_table, filename="q_table.pkl"):
     try:
         with open(filename, "wb") as f:
             pickle.dump(Q_table, f)
-            print(f"Zapisano plik o nazwie: {filename}")
+            print(f"Saved a file named: {filename}")
     except Exception as e:
-        print(f"Wystąpił błąd podczas zapisu: {e}")
+        print(f"An error occurred while saving: {e}")
 
 
 def load_model(filename="q_table.pkl"):
     try:
         with open(filename, "rb") as f:
-            print(f"Pomyślnie wczytano plik: {filename}!")
+            print(f"File successfully loaded: {filename}!")
             return pickle.load(f)
     except FileNotFoundError:
-        print(f"Plik '{filename}' nie został znaleziony.")
+        print(f"File '{filename}' has not been found.")
         return None
     except Exception as e:
-        print(f"Wystąpił błąd podczas wczytywania modelu: {e}")
+        print(f"An error occurred while loading the model: {e}")
         return None
 
 # -----------------------------
@@ -228,11 +228,11 @@ def trained_move(board, Q_table):
 
         Args:
             board (np.array): Current state of board.
-            Q_table (dict): table with Q vlaues,
+            Q_table (dict): table with Q values,
 
         Returns:
-            tuple: Krotka (row, col) reprezentująca najlepszy ruch.
-            None: Jeśli nie ma dostępnych ruchów.
+            Tuple: (row, col) representing the best move.
+            None: if there are no moves available.
         """
     state = board_to_string(board)
     possible_moves = list_possible_moves(board)
@@ -241,20 +241,27 @@ def trained_move(board, Q_table):
         return None
 
     if state not in Q_table:
-        print("Nieznany stan, wykonuję losowy ruch.")
+        print("Unknown state, making a random move.")
         return random_move(board)
 
     q_values = Q_table[state]
 
-    # Znajdź wartości Q dla dostępnych ruchów
+    # Find the Q values for available moves
     empty_q_values = [q_values[row, col] for (row, col) in possible_moves]
     max_q_value = max(empty_q_values)
 
-    # Wybierz losowo jeden z ruchów o najwyższej wartości Q, aby uniknąć determinizmu
+    # Randomly choose one of all moves with the highest Q value to avoid determinism
     best_moves_indices = [i for i, q_val in enumerate(empty_q_values) if q_val == max_q_value]
     best_move_index = random.choice(best_moves_indices)
 
     return possible_moves[best_move_index]
+
+# -----------------------------
+# PERFORM LEARNING MOVE
+# -----------------------------
+def learning_move(board, Q_table):
+    # strategy dependent move and update of Q_table by playing with human player
+    pass #return action
 
 
 # -----------------------------
@@ -296,7 +303,7 @@ def evaluate(purpose, model, games=1000):
             losses += 1
 
     dane = []
-    filename = 'skutecznosc_vs_parametry.json'
+    filename = 'effectiveness_vs_parameters.json'
 
     if os.path.exists(filename):
         with open(filename, 'r') as f:
@@ -308,32 +315,34 @@ def evaluate(purpose, model, games=1000):
     effectiveness = wins/games*100
     effectiveness_draws = draws/games*100
     loss_ratio = 100 - effectiveness_draws - effectiveness
-    slownik = {"training_purpose": f"{purpose}", "effectiveness": f"{effectiveness:.2f}%", "effectiveness_draws": f"{effectiveness_draws:.2f}%",
-               "loss_ratio":f"{loss_ratio:.2f}", "wins": wins, "draws": draws, "losses": losses,
+    stats = {"training_purpose": f"{purpose}", "effectiveness": f"{effectiveness:.2f}%", "effectiveness_draws": f"{effectiveness_draws:.2f}%",
+               "loss_ratio":f"{loss_ratio:.2f}%", "wins": wins, "draws": draws, "losses": losses,
                "learning_rate": learning_rate, "discount_factor": discount_factor, "num_episodes": num_episodes,
                "epsilon_min": epsilon_min, "epsilon_max": epsilon_max, "decay_rate": decay_rate}
 
-    dane.append(slownik)
+    dane.append(stats)
 
     with open(filename, 'w') as f:
         json.dump(dane, f, indent=2)
 
     print("--------------------------------------------------------------------")
-    print(f"CEL AGENTA: {purpose}")
-    print(f"Wygrane: {wins}, Remisy: {draws}, Przegrane: {losses}")
-    print(f"Skuteczność agenta: {effectiveness:.2f}% wygranych")
-    print(f"Skuteczność w remisowaniu: {effectiveness_draws:.2f}% zremisowanych")
-    print(f"Procent przegranych gier: {loss_ratio:.2f}% przegranych")
+    print(f"PURPOSE: {purpose}")
+    print(f"Wins: {wins}, Draws: {draws}, Losses: {losses}")
+    print(f"Win-ratio: {effectiveness:.2f}%")
+    print(f"Draw-ratio: {effectiveness_draws:.2f}%")
+    print(f"Lose-ratio: {loss_ratio:.2f}%")
 
 
 
 # RUN MODEL
 if __name__ == "__main__":
-    print("Ładowanie wytrenowanego modelu...")
+    print("Loading trained model...")
     Qa = load_model("q_table_A.pkl")
     Qd = load_model("q_table_D.pkl")
+    # evaluate("attack", Qa, 10000)
+    # evaluate("defence", Qd, 10000)
     if (Qa or Qd) is None:
-        print("Trening agenta...")
+        print("Agents Training...")
         Qa, Qd = train_agents(epsilon_min, epsilon_max, decay_rate)
         save_model(Qa, "q_table_A.pkl")
         save_model(Qd, "q_table_D.pkl")

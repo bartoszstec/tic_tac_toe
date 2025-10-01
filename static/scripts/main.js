@@ -6,34 +6,34 @@ const gameSize = 600;
 canvas.width = gameSize;
 canvas.height =  gameSize;
 
-
-let gameActive = true; //flaga do kontrolowania funkcji
+// flags used to control functions
+let gameActive = true;
 let gameStarted = false;
 let aiFirstMoveFlag = false;
 
-// Inicjalizacja Gry
-const game = new Game(canvas.width, canvas.height, ctx); //utworzenie obiektu gry
+// Game Initialization
+const game = new Game(canvas.width, canvas.height, ctx); // creating a game object
 game.drawBoard();
 
-fetch("/start-game") //poinformowanie backendu o starcie gry
+fetch("/start-game") // informing the backend about the game start
   .then(res => res.json())
   .then(data => {
-    console.log("Gra rozpoczęta:", data);
+    console.log("The game has started:", data);
   })
-  .catch(err => console.error("Błąd przy starcie gry:", err));
+  .catch(err => console.error("Error when starting the game:", err));
 
 
-// Obsługa kliknięcia na canvas
+// Canvas click handling
     canvas.addEventListener("click", handleCanvasClick);
 
-    // Obsługa zmiany trybu
+    // Mode change handling
     const modeToggleBtn = document.getElementById("modeToggle");
     modeToggleBtn.addEventListener("click", toggleGameMode);
 
     const startBtn = document.getElementById("startButton");
     startBtn.addEventListener('click', firstAiMove);
 
-//Funkcje pomocnicze
+// Helper functions
 function handleCanvasClick(event) {
     gameStarted = true;
     const { row, col } = getClickedCell(event);
@@ -49,8 +49,8 @@ function handleCanvasClick(event) {
         if (!aiFirstMoveFlag) {
             gameActive = false;
             gameStarted = false;
-            console.warn("Kliknij przycisk start, aby rozpocząć grę z AI");
-            alert("Kliknij przycisk start, aby rozpocząć grę z AI");
+            console.warn("Click the start button to start playing with AI");
+            alert("Click the start button to start playing with AI");
             return;
         }
 
@@ -97,14 +97,15 @@ function toggleGameMode() {
                 }
         modeToggleBtn.textContent = `Game Mode: ${game.mode}`;
     } else {
-        console.warn("Nie można zmienić trybu gry podczas trwania rozgrywki!");
+        console.warn("You cannot change the game mode during the game!");
+        alert("You cannot change the game mode during the game!");
     }
 }
 
 function makePlayerMove(row, col) {
     if (!gameActive) return Promise.resolve(null);
 
-    //  Ruch Gracza
+    //  Player's move
     return fetch("/player-move", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -113,17 +114,17 @@ function makePlayerMove(row, col) {
     .then(res => res.json())
     .then(data => {
         if (data.error) {
-            console.warn("Błąd ruchu gracza:", data.error);
-            alert(data.error || "Wystąpił błąd przy ruchu");
+            console.warn("Player's move error:", data.error);
+            alert(data.error || "An error occurred while moving");
             throw new Error(data.error);
         }
 
-    // Wykonanie ruchu
+    // Making a move
     game.drawSymbol(row, col, data.current_player);
-    console.log("ruch wykonał gracz:", data.current_player);
+    console.log("move made by:", data.current_player);
     tryEndGame(data);
 
-    return data; // <- ważne, żeby PvE mogło sprawdzić winner/draw
+    return data; // <- it is important that PvE can check winner/draw
     })
 }
 
@@ -135,12 +136,12 @@ function performAiGame(row, col) {
         return fetch("/AI-move", { method: "POST" })
             .then(res => res.json())
             .then(aiData => {
-                console.log("ruch wykonał gracz:", aiData.current_player);
+                console.log("move made by:", aiData.current_player);
                 game.drawSymbol(aiData.aiRow, aiData.aiCol, aiData.current_player);
                 tryEndGame(aiData);
             });
     })
-    .catch(err => console.error("Błąd PvE:", err));
+    .catch(err => console.error("PvE error:", err));
 }
 
 function firstAiMove() {
@@ -149,7 +150,7 @@ function firstAiMove() {
         fetch("/AI-move", { method: "POST" })
             .then(res => res.json())
             .then(aiData => {
-                console.log("ruch wykonał gracz:", aiData.current_player);
+                console.log("move made by:", aiData.current_player);
                 game.drawSymbol(aiData.aiRow, aiData.aiCol, aiData.current_player);
 
                 // set all flags after move is done
@@ -157,7 +158,7 @@ function firstAiMove() {
                 gameActive = true;
                 gameStarted = true;
             })
-            .catch(err => console.error("Błąd pierwszego ruchu AI:", err));
+            .catch(err => console.error("AI's First Move Error:", err));
     }
 }
 
@@ -166,13 +167,13 @@ function tryEndGame(data) {
         gameActive = false;
         game.animateWinningLine(data.winning_line);
         setTimeout(() => {
-            alert(`Wygrał gracz: ${data.current_player}`);
+            alert(`VICTORY: ${data.current_player}`);
             resetGame();
         }, 1000);
     } else if (data.draw) {
         gameActive = false;
         setTimeout(() => {
-            alert("Remis!");
+            alert("Draw!");
             resetGame();
         }, 1000);
     }

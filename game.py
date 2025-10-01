@@ -61,7 +61,7 @@ class Game:
     def save_game_result(self, winner):
         try:
             response = requests.post(
-                "http://127.0.0.1:5000/save-game",  # pełny adres serwera
+                "http://127.0.0.1:5000/save-game",  # full server address
                 json={
                     "moves": self.move_log,
                     "board": self.board,
@@ -69,14 +69,14 @@ class Game:
                 }
             )
             data = response.json()
-            print("Zapisano grę:", data.get("status"))
+            print("Saved game:", data.get("status"))
         except requests.RequestException as err:
-            print("Błąd zapisu gry:", err)
+            print("Game save error:", err)
 
     def make_move(self, row, col):
         b = self.board
         if b[row][col] is not None:
-            raise ValueError("Pole jest już zajęte!")
+            raise ValueError("The field is already occupied!")
         else:
             b[row][col] = self.current_player
             self.save_move_to_log(row, col)

@@ -4,9 +4,9 @@ export class Game {
             this.height = height;
             this.ctx = ctx;
             this.cellSize = this.width/3;
-            this.mode = "PvP"; // Tryb gry: PvP lub PvE
+            this.mode = "PvP"; // Game mode: "PvP" or "Player vs AI" or "AI vs Player"
             this.boardState = [
-                [null, null, null], //tablica gry
+                [null, null, null], //game board
                 [null, null, null],
                 [null, null, null]
             ];
@@ -15,7 +15,7 @@ export class Game {
         clearBoard(){
             this.ctx.clearRect(0, 0, this.width, this.height);
             this.boardState = [
-                [null, null, null], //tablica gry
+                [null, null, null],
                 [null, null, null],
                 [null, null, null]
             ];
@@ -27,7 +27,7 @@ export class Game {
             ctx.strokeStyle = "black";
             ctx.lineWidth = 5;
 
-            // Pionowe linie
+            // Vertical lines
             ctx.beginPath();
             ctx.moveTo(this.cellSize, 0);
             ctx.lineTo(this.cellSize, this.height);
@@ -38,7 +38,7 @@ export class Game {
             ctx.lineTo(this.cellSize * 2, this.height);
             ctx.stroke();
 
-            // Poziome linie
+            // Horizontal lines
             ctx.beginPath();
             ctx.moveTo(0, this.cellSize);
             ctx.lineTo(this.width, this.cellSize);
@@ -55,7 +55,7 @@ export class Game {
 
             const ctx = this.ctx;
 
-            // Wyznacz punkty start i end linii
+            // Mark the start and end points of the line
             const [startRow, startCol] = winningCells[0];
             const [endRow, endCol] = winningCells[2];
 
@@ -74,7 +74,7 @@ export class Game {
 
                 ctx.strokeStyle = "rgba(255,0,0,0.8)";
                 ctx.lineWidth = 8;
-                ctx.lineCap = "round"; // dla symetrycznych końcówek
+                ctx.lineCap = "round"; // for symmetrical ends
 
                 ctx.beginPath();
                 ctx.moveTo(startX, startY);

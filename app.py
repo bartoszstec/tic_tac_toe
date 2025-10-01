@@ -6,7 +6,6 @@ from game import Game
 import uuid
 
 app = Flask(__name__)
-FLASK_DEBUG=1
 app.secret_key = 'BAD_SECRET_KEY'
 
 games = {}  # Main server dictionary with game state keys and values,
@@ -27,15 +26,14 @@ def start_game():
     session_id = generate_unique_id()   # function for generating ID (e.g. uuid4)
     session['session_id'] = session_id
     games[session_id] = Game()          # create a new board for the user and storing Game object in dictionary
-    return jsonify({"status": "utworzono unikalną planszę dla użytkownika"})
+    return jsonify({"status": "a unique board was created for the user"})
 
 @app.route('/change-strategy', methods = ['POST'])
 def change_strategy():
     # Get unique game ID for this session
     session_id = session.get('session_id')
     if not session_id:
-        print("Brak session_id!")
-        return jsonify({"error": "Brak sesji"}), 400
+        return jsonify({"error": "No session!"}), 400
 
     # storing the strategy from the frontend
     data = request.get_json()
@@ -45,7 +43,7 @@ def change_strategy():
     game = games[session_id]
     game.strategy = strategy
 
-    return jsonify({"status": "Strategia zaktualizowana"}), 200
+    return jsonify({"status": "Strategy updated"}), 200
 
 @app.route('/save-game', methods=['POST'])
 def save_game():
@@ -89,8 +87,7 @@ def ai_move():
     # Get unique game ID for this session
     session_id = session.get('session_id')
     if not session_id:
-        print("Brak session_id!")
-        return jsonify({"error": "Brak sesji"}), 400
+        return jsonify({"error": "No session!"}), 400
 
     # assigning an instance of a game object to the game variable
     game = games[session_id]
@@ -101,10 +98,10 @@ def ai_move():
     elif game.strategy == "defence":
         Q_table = Q_DEFENCE
     else:
-        return jsonify({"error": "Nieznana strategia"}), 400
+        return jsonify({"error": "Unknown strategy"}), 400
 
-    board = game.board              # storing current board to variable
-    move = trained_move(board, Q_table)      # AI agent choosing the best possible move
+    board = game.board                      # storing current board to variable
+    move = trained_move(board, Q_table)     # AI agent choosing the best possible move
 
     row, col = move                 # storing move to row and col variables
 
@@ -121,7 +118,7 @@ def ai_move():
     draw = False                        # a flag indicating a tie
 
     current_player = game.current_player    # storing current_player, this is player that just moved
-    if game.check_full_board():     # checking is game draw/over or has to be continued
+    if game.check_full_board():             # checking is game draw/over or has to be continued
         draw = True
     if game.game_over:
         game.reset_game()
@@ -129,14 +126,13 @@ def ai_move():
         game.switch_player()    # method switching current_player from X to O and from O to X, switched player is the next player's move
                                 # WARNING: has to be executed after storing current_player from game class
 
-    return jsonify({"status": "ruch ai wykonany", "current_player": current_player, "winner": winner, "winning_line": winning_line, "draw": draw, "aiRow": row, "aiCol": col})
+    return jsonify({"status": "AI moved", "current_player": current_player, "winner": winner, "winning_line": winning_line, "draw": draw, "aiRow": row, "aiCol": col})
 
 @app.route('/player-move', methods = ['POST'])
 def player_move():
     session_id = session.get('session_id')
     if not session_id:
-        print("Brak session_id!")
-        return jsonify({"error": "Brak sesji"}), 400
+        return jsonify({"error": "No session!"}), 400
 
     # assigning an instance of a game object to the game variable
     game = games[session_id]
@@ -159,7 +155,7 @@ def player_move():
     draw = False                        # a flag indicating a tie
 
     current_player = game.current_player    # storing current_player, this is player that just moved
-    if game.check_full_board():     # checking is game draw/over or has to be continued
+    if game.check_full_board():             # checking is game draw/over or has to be continued
         draw = True
     if game.game_over:
         game.reset_game()
@@ -167,4 +163,7 @@ def player_move():
         game.switch_player()    # method switching current_player from X to O and from O to X, switched player is the next player's move
                                 # WARNING: has to be executed after storing current_player from game class
 
-    return jsonify({"status": "ruch gracza wykonany", "current_player": current_player, "winner": winner, "winning_line": winning_line, "draw": draw})
+    return jsonify({"status": "Player moved", "current_player": current_player, "winner": winner, "winning_line": winning_line, "draw": draw})
+
+if __name__ == "__main__":
+    app.run()

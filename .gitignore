@@ -3,4 +3,4 @@ __pycache__/
 .idea/
 games_history.json
 *.pkl
-skutecznosc_vs_parametry.json
+effectiveness_vs_parameters.json
