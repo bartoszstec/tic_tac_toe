@@ -2,5 +2,4 @@ venv/
 __pycache__/
 .idea/
 games_history.json
-*.pkl
 effectiveness_vs_parameters.json
