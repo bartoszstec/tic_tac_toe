@@ -1,5 +1,6 @@
 import requests
 import copy
+import os
 
 class Game:
     def __init__(self, board=None, current_player='X', game_over=False, winner=None, winning_line=None, strategy='defence'):
@@ -60,8 +61,9 @@ class Game:
 
     def save_game_result(self, winner):
         try:
+            server_url = os.getenv("SERVER_URL", "http://127.0.0.1:5000")
             response = requests.post(
-                "http://127.0.0.1:5000/save-game",  # full server address
+                f"{server_url}/save-game",  # full server address
                 json={
                     "moves": self.move_log,
                     "board": self.board,
