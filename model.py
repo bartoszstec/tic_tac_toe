@@ -157,6 +157,9 @@ def train_agents(epsilon_min, epsilon_max, decay_rate):
         # Set exploration rate for this episode
         exploration_rate = epsilon_min + (epsilon_max - epsilon_min) * np.exp(-decay_rate * episode)
         # print(exploration_rate)
+        if episode % (num_episodes/10) == 0:
+            simulate_games("attack", Q_attack, 500)
+            simulate_games("defence", Q_defence, 500)
 
         while not game_over:
             Q = Q_attack if current_player == 'X' else Q_defence
@@ -267,7 +270,7 @@ def learning_move(board, Q_table):
 # -----------------------------
 # EVALUATE MODEL
 # -----------------------------
-def evaluate(purpose, model, games=1000):
+def simulate_games(purpose, model, games=1000):
     wins, draws, losses = 0, 0, 0
     Q_table = model
 
@@ -279,13 +282,13 @@ def evaluate(purpose, model, games=1000):
         return print("Unknown evaluate purpose, evaluation process breaking...")
 
     for _ in range(games):
-        board = np.array([[None]*3 for _ in range(3)])
+        board = np.array([[None] * 3 for _ in range(3)])
         current_player = 'X'
         game_over = False
         winner = None
 
         while not game_over:
-            if current_player == agent_player: # agent turn
+            if current_player == agent_player:  # agent turn
                 move = trained_move(board, Q_table)
             else:  # random opponent
                 possible = list_possible_moves(board)
@@ -301,6 +304,10 @@ def evaluate(purpose, model, games=1000):
             draws += 1
         else:
             losses += 1
+    return wins, draws, losses
+
+def evaluate(purpose, model, games=1000):
+    wins, draws, losses = simulate_games(purpose, model, games)
 
     dane = []
     filename = 'effectiveness_vs_parameters.json'

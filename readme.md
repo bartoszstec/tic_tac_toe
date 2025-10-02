@@ -53,6 +53,8 @@ When the Q-table presents multiple moves with the same highest Q-value, the agen
 - Prevents Determinism: It avoids the agent falling into predictable, suboptimal, or cyclical move patterns.
 - Encourages Subtle Exploration: It supports continuous, low-level testing of the best possible action paths, refining the strategy even after the main learning phase is complete.
 
+### 📈 Learning Vizualization
+
 ## 🛠️ Project structure
 - **Backend (Python):**  
   - `app.py` – server startup and communication logic.  
