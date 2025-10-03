@@ -351,11 +351,6 @@ if __name__ == "__main__":
         #Qa = load_model("q_table_A.pkl")
         #Qd = load_model("q_table_D.pkl")
 
-    # Qa, Qd = train_agents(epsilon_min, epsilon_max, decay_rate)
-    # save_model(Qa, "q_table_A.pkl")
-    # save_model(Qd, "q_table_D.pkl")
-    # evaluate("attack", Qa, 10000)
-    # evaluate("defence", Qd, 10000)
 
 
 

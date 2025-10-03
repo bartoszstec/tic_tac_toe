@@ -1,6 +1,6 @@
-import requests
 import copy
 import os
+import json
 
 class Game:
     def __init__(self, board=None, current_player='X', game_over=False, winner=None, winning_line=None, strategy='defence'):
@@ -60,20 +60,29 @@ class Game:
         })
 
     def save_game_result(self, winner):
-        try:
-            server_url = os.getenv("SERVER_URL", "http://127.0.0.1:5000")
-            response = requests.post(
-                f"{server_url}/save-game",  # full server address
-                json={
-                    "moves": self.move_log,
-                    "board": self.board,
-                    "result": winner or "DRAW"
-                }
-            )
-            data = response.json()
-            print("Saved game:", data.get("status"))
-        except requests.RequestException as err:
-            print("Game save error:", err)
+        filename = 'games_history.json'
+        games_history = []
+
+        # Wczytanie istniejącej historii, jeśli plik istnieje
+        if os.path.exists(filename):
+            with open(filename, 'r') as f:
+                try:
+                    games_history = json.load(f)
+                except json.JSONDecodeError:
+                    games_history = []
+
+        # Dodanie aktualnej gry
+        games_history.append({
+            "moves": self.move_log,
+            "board": self.board,
+            "result": winner or "DRAW"
+        })
+
+        # Zapis całości do pliku
+        with open(filename, 'w') as f:
+            json.dump(games_history, f, indent=2)
+
+        print("Saved game: success")
 
     def make_move(self, row, col):
         b = self.board
