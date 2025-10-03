@@ -45,29 +45,6 @@ def change_strategy():
 
     return jsonify({"status": "Strategy updated"}), 200
 
-@app.route('/save-game', methods=['POST'])
-def save_game():
-    data = request.get_json()
-    if not data:
-        return jsonify({"status": "error", "message": "No data received"}), 400
-
-    filename = 'games_history.json'
-    games_history = []
-
-    if os.path.exists(filename):
-        with open(filename, 'r') as f:
-            try:
-                games_history = json.load(f)
-            except json.JSONDecodeError:
-                games_history = []
-
-    games_history.append(data)
-
-    with open(filename, 'w') as f:
-        json.dump(games_history, f, indent=2)
-
-    return jsonify({"status": "success"})
-
 @app.route('/history')
 def history():
     filename = 'games_history.json'
