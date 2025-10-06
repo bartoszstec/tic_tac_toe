@@ -26,8 +26,8 @@ The agents' effectiveness was rigorously evaluated by simulating **10,000 games*
 
 |        Agent        |     Strategy Goal     | Win Ratio  | Draw Ratio | Loss Ratio |
 |:---:|:---:|:---:| :---: | :---: |
-| **Attacking Agent** |   Maximize Victory    | **84.57%** | 8.30% | 7.13% |
-| **Defensive Agent** | Minimize Failure Risk |   64.33%   | **27.05%** | 8.62% |
+| **Attacking Agent** |   Maximize Victory    | **89.24%** | 8.36% | 2.40% |
+| **Defensive Agent** | Minimize Failure Risk |   63.54%   | **28.00%** | 8.46% |
 
 ### Why Agents Stand Out?
 
@@ -54,6 +54,13 @@ When the Q-table presents multiple moves with the same highest Q-value, the agen
 - Encourages Subtle Exploration: It supports continuous, low-level testing of the best possible action paths, refining the strategy even after the main learning phase is complete.
 
 ### 📈 Learning Vizualization
+This chart illustrates the performance improvement of the learning agents throughout the training process. The metric is based on periodic evaluations—conducted every few thousand training episodes—where the agents competed against a randomized opponent strategy. The trend line demonstrates the agents' increasing proficiency over time.
+
+Smoothed Performance:
+![Learning Graph](training_progress.png)
+
+Raw Training Data:
+![Learning Graph](training_progress_raw.png)
 
 ## 🛠️ Project structure
 - **Backend (Python):**  
