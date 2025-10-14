@@ -2,17 +2,24 @@ import { Game } from './game.js';
 
 const canvas = document.getElementById("canvas1");
 const ctx = canvas.getContext("2d");
-const gameSize = 600;
-canvas.width = gameSize;
-canvas.height =  gameSize;
+
+// Ustawienie początkowej wartości gameSize
+//let gameSize = 600;
+//canvas.width = gameSize;
+//canvas.height =  gameSize;
 
 // flags used to control functions
 let gameActive = true;
 let gameStarted = false;
 let aiFirstMoveFlag = false;
 
+// Inicjalizacja gry z dynamicznym rozmiarem
+let gameSize = getCanvasSize();
+canvas.width = gameSize;
+canvas.height = gameSize;
+
 // Game Initialization
-const game = new Game(canvas.width, canvas.height, ctx); // creating a game object
+const game = new Game(gameSize, ctx); // creating a game object
 game.drawBoard();
 
 fetch("/start-game") // informing the backend about the game start
@@ -22,6 +29,7 @@ fetch("/start-game") // informing the backend about the game start
   })
   .catch(err => console.error("Error when starting the game:", err));
 
+    window.addEventListener('resize', handleResize);
 
 // Canvas click handling
     canvas.addEventListener("click", handleCanvasClick);
@@ -32,6 +40,37 @@ fetch("/start-game") // informing the backend about the game start
 
     const startBtn = document.getElementById("startButton");
     startBtn.addEventListener('click', firstAiMove);
+
+// Funkcja do pobierania aktualnego rozmiaru canvas z CSS
+function getCanvasSize() {
+    const computedStyle = getComputedStyle(canvas);
+    const width = parseInt(computedStyle.width);
+    const height = parseInt(computedStyle.height);
+
+    // Zwróć mniejszą wartość, aby zachować kwadratowy kształt
+    return Math.min(width, height);
+}
+
+// Funkcja obsługująca zmianę rozmiaru okna
+function handleResize() {
+        const newSize = getCanvasSize();
+
+        // Aktualizuj rozmiar tylko jeśli się zmienił
+        if (newSize !== gameSize) {
+            gameSize = newSize;
+            canvas.width = gameSize;
+            canvas.height = gameSize;
+
+            // Aktualizuj rozmiar w obiekcie gry
+            game.width = gameSize;
+            game.height = gameSize;
+            game.cellSize = gameSize / 3;
+
+            // Przerysuj planszę
+            game.drawBoard();
+            game.drawAllSymbols();
+        }
+}
 
 // Helper functions
 function handleCanvasClick(event) {

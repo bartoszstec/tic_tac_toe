@@ -10,7 +10,6 @@
 }
 
 #canvas1 {
-    border: 5px solid black;
     position: absolute;
     top: 50%;
     left: 50%;
@@ -18,6 +17,55 @@
     max-width: 100%;
     max-height: 100%;
 }
+
+/* Mobile - małe ekrany */
+@media (max-width: 480px) and (orientation: portrait) {
+    #canvas1 {
+        width: 95vw;
+        height: 95vw;
+        max-width: 360px;
+        max-height: 360px;
+    }
+}
+
+/* Mobile - średnie ekrany */
+@media (min-width: 481px) and (max-width: 768px) {
+    #canvas1 {
+        width: 90vw;
+        height: 90vw;
+        max-width: 450px;
+        max-height: 450px;
+    }
+}
+
+/* Tablety */
+@media (min-width: 769px) and (max-width: 1024px) {
+    #canvas1 {
+        width: 80vw;
+        height: 80vw;
+        max-width: 550px;
+        max-height: 550px;
+    }
+}
+
+/* Mobile landscape */
+@media (max-height: 480px) and (orientation: landscape) {
+    #canvas1 {
+        width: 85vh;
+        height: 85vh;
+        max-width: 400px;
+        max-height: 400px;
+    }
+}
+
+/* Desktop - domyślny rozmiar */
+@media (min-width: 1025px) {
+    #canvas1 {
+        width: 600px;
+        height: 600px;
+    }
+}
+
 
 .container {
     padding: 50px;

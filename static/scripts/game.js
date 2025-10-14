@@ -1,7 +1,7 @@
 export class Game {
-        constructor(width, height, ctx){
-            this.width = width;
-            this.height = height;
+        constructor(size, ctx){
+            this.width = size;
+            this.height = size;
             this.ctx = ctx;
             this.cellSize = this.width/3;
             this.mode = "PvP"; // Game mode: "PvP" or "Player vs AI" or "AI vs Player"
@@ -27,26 +27,29 @@ export class Game {
             ctx.strokeStyle = "black";
             ctx.lineWidth = 5;
 
-            // Vertical lines
+            // Border
             ctx.beginPath();
-            ctx.moveTo(this.cellSize, 0);
-            ctx.lineTo(this.cellSize, this.height);
+            ctx.rect(ctx.lineWidth/2, ctx.lineWidth/2,
+                     this.width - ctx.lineWidth, this.height - ctx.lineWidth);
             ctx.stroke();
 
+            //Internal lines
             ctx.beginPath();
-            ctx.moveTo(this.cellSize * 2, 0);
-            ctx.lineTo(this.cellSize * 2, this.height);
-            ctx.stroke();
 
-            // Horizontal lines
-            ctx.beginPath();
-            ctx.moveTo(0, this.cellSize);
-            ctx.lineTo(this.width, this.cellSize);
-            ctx.stroke();
+            // Vertical
+            for (let i = 1; i <= 2; i++) {
+                const x = this.cellSize * i + ctx.lineWidth / 2;
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, this.height);
+            }
 
-            ctx.beginPath();
-            ctx.moveTo(0, this.cellSize * 2);
-            ctx.lineTo(this.width, this.cellSize * 2);
+            // Horizontal
+            for (let i = 1; i <= 2; i++) {
+                const y = this.cellSize * i + ctx.lineWidth / 2;
+                ctx.moveTo(0, y);
+                ctx.lineTo(this.width, y);
+            }
+
             ctx.stroke();
         }
 
@@ -73,7 +76,7 @@ export class Game {
                 this.drawAllSymbols();
 
                 ctx.strokeStyle = "rgba(255,0,0,0.8)";
-                ctx.lineWidth = 8;
+                ctx.lineWidth = Math.max(6, this.width * 0.01);
                 ctx.lineCap = "round"; // for symmetrical ends
 
                 ctx.beginPath();
@@ -100,23 +103,26 @@ export class Game {
         const y = row * this.cellSize;
         const ctx = this.ctx;
         ctx.strokeStyle = "black";
-        ctx.lineWidth = 10;
+        ctx.lineWidth = Math.max(8, this.width * 0.013);
+
+        const padding = this.cellSize * 0.1; // 10% padding - responsive
 
         if (symbol === "X") {
             ctx.beginPath();
-            ctx.moveTo(x + 20, y + 20);
-            ctx.lineTo(x + this.cellSize - 20, y + this.cellSize - 20);
-            ctx.moveTo(x + this.cellSize - 20, y + 20);
-            ctx.lineTo(x + 20, y + this.cellSize - 20);
+            ctx.moveTo(x + padding, y + padding);
+            ctx.lineTo(x + this.cellSize - padding, y + this.cellSize - padding);
+            ctx.moveTo(x + this.cellSize - padding, y + padding);
+            ctx.lineTo(x + padding, y + this.cellSize - padding);
             ctx.stroke();
         }
 
         if (symbol === "O") {
             ctx.beginPath();
-            ctx.arc(x + this.cellSize / 2, y + this.cellSize / 2, this.cellSize / 2 - 30, 0, Math.PI * 2);
+            const radius = this.cellSize / 2 - padding;
+            ctx.arc(x + this.cellSize / 2, y + this.cellSize / 2, radius, 0, Math.PI * 2);
             ctx.stroke();
         }
-        }
+    }
 
         drawAllSymbols() {
             for (let row = 0; row < 3; row++) {
